@@ -70,8 +70,17 @@ export async function getLogs(filters = {}) {
       params.push(filters.ipAddress);
     }
 
-    query += ' ORDER BY l.created_at DESC LIMIT $' + paramIndex++;
-    params.push(filters.limit || 100);
+    query += ' ORDER BY l.created_at DESC';
+    
+    if (filters.limit) {
+      query += ' LIMIT $' + paramIndex++;
+      params.push(filters.limit);
+    }
+    
+    if (filters.offset !== undefined) {
+      query += ' OFFSET $' + paramIndex++;
+      params.push(filters.offset);
+    }
 
     const result = await client.query(query, params);
     return result.rows;

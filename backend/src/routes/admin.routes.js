@@ -524,22 +524,60 @@ router.get('/logs', async (req, res, next) => {
     const { page = 1, limit = 100, userId, action, startDate, endDate, ipAddress } = req.query;
     const offset = (page - 1) * limit;
 
-    const logs = await getLogs({
-      userId: userId ? parseInt(userId) : null,
-      action,
-      startDate,
-      endDate,
-      ipAddress,
-      limit: parseInt(limit)
-    });
+    const client = await pool.connect();
+    try {
+      // Toplam kayıt sayısını al
+      let countQuery = 'SELECT COUNT(*) as total FROM logs WHERE 1=1';
+      const countParams = [];
+      let paramIndex = 1;
 
-    res.json({
-      logs,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit)
+      if (userId) {
+        countQuery += ` AND user_id = $${paramIndex++}`;
+        countParams.push(parseInt(userId));
       }
-    });
+      if (action) {
+        countQuery += ` AND action = $${paramIndex++}`;
+        countParams.push(action);
+      }
+      if (startDate) {
+        countQuery += ` AND created_at >= $${paramIndex++}`;
+        countParams.push(startDate);
+      }
+      if (endDate) {
+        countQuery += ` AND created_at <= $${paramIndex++}`;
+        countParams.push(endDate);
+      }
+      if (ipAddress) {
+        countQuery += ` AND ip_address = $${paramIndex++}`;
+        countParams.push(ipAddress);
+      }
+
+      const countResult = await client.query(countQuery, countParams);
+      const total = parseInt(countResult.rows[0].total);
+
+      // Logları getir
+      const logs = await getLogs({
+        userId: userId ? parseInt(userId) : null,
+        action,
+        startDate,
+        endDate,
+        ipAddress,
+        limit: parseInt(limit),
+        offset: offset
+      });
+
+      res.json({
+        logs,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: total,
+          totalPages: Math.ceil(total / parseInt(limit))
+        }
+      });
+    } finally {
+      client.release();
+    }
   } catch (error) {
     next(error);
   }

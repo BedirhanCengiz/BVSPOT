@@ -255,8 +255,17 @@ export async function getWebTrafficLogs(filters = {}) {
       params.push(filters.statusCode);
     }
 
-    query += ` ORDER BY wtl.created_at DESC LIMIT $${paramIndex++}`;
-    params.push(filters.limit || 1000);
+    query += ` ORDER BY wtl.created_at DESC`;
+    
+    if (filters.limit) {
+      query += ` LIMIT $${paramIndex++}`;
+      params.push(filters.limit);
+    }
+    
+    if (filters.offset !== undefined) {
+      query += ` OFFSET $${paramIndex++}`;
+      params.push(filters.offset);
+    }
 
     const result = await client.query(query, params);
     

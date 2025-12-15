@@ -17,6 +17,7 @@ export default function AdminTraffic() {
   const [loading, setLoading] = useState(true);
   const [logs, setLogs] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
+  const [pagination, setPagination] = useState<any>({});
   const [filters, setFilters] = useState({
     userId: '',
     ipAddress: '',
@@ -25,7 +26,7 @@ export default function AdminTraffic() {
     startDate: '',
     endDate: '',
     page: 1,
-    limit: 100,
+    limit: 10,
   });
 
   useEffect(() => {
@@ -65,6 +66,7 @@ export default function AdminTraffic() {
       
       setLogs(Array.isArray(logs) ? logs : []);
       setStats(stats);
+      setPagination(logsResponse.data?.pagination || {});
     } catch (err: any) {
       console.error('Web trafiği yükleme hatası:', err);
       console.error('Hata detayları:', {
@@ -273,6 +275,34 @@ export default function AdminTraffic() {
                 </tbody>
               </table>
             </div>
+            
+            {/* Pagination */}
+            {pagination.totalPages > 1 && (
+              <div className="bg-slate-50 px-6 py-4 flex items-center justify-between border-t border-slate-200">
+                <div className="text-sm text-slate-700">
+                  {t('totalRecords', language)
+                    .replace('{total}', pagination.total?.toString() || '0')
+                    .replace('{page}', pagination.page?.toString() || '1')
+                    .replace('{totalPages}', pagination.totalPages?.toString() || '1')}
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setFilters({ ...filters, page: (pagination.page || 1) - 1 })}
+                    disabled={pagination.page === 1}
+                    className="px-4 py-2 border border-slate-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-100 text-sm text-slate-700 bg-white"
+                  >
+                    {t('previous', language)}
+                  </button>
+                  <button
+                    onClick={() => setFilters({ ...filters, page: (pagination.page || 1) + 1 })}
+                    disabled={pagination.page === pagination.totalPages}
+                    className="px-4 py-2 border border-slate-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-100 text-sm text-slate-700 bg-white"
+                  >
+                    {t('next', language)}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

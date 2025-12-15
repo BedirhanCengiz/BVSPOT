@@ -3,6 +3,7 @@ import { body, validationResult } from 'express-validator';
 import { logWebTraffic, logBulkWebTraffic, getWebTrafficLogs, getWebTrafficStats } from '../services/webTrafficService.js';
 import { requireAdmin } from '../middleware/auth.js';
 import { macAddressMiddleware } from '../middleware/macAddress.js';
+import { pool } from '../database/db.js';
 
 const router = express.Router();
 
@@ -128,28 +129,79 @@ router.get('/logs',
         limit = 100
       } = req.query;
 
-      const filters = {
-        userId: userId ? parseInt(userId) : null,
-        ipAddress,
-        macAddress,
-        domain,
-        startDate,
-        endDate,
-        method,
-        statusCode,
-        limit: parseInt(limit)
-      };
+      const offset = (parseInt(page) - 1) * parseInt(limit);
+      const client = await pool.connect();
+      
+      try {
+        // Toplam kayıt sayısını al
+        let countQuery = 'SELECT COUNT(*) as total FROM web_traffic_logs WHERE 1=1';
+        const countParams = [];
+        let paramIndex = 1;
 
-      const logs = await getWebTrafficLogs(filters);
-
-      res.json({
-        logs,
-        pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total: logs.length
+        if (userId) {
+          countQuery += ` AND user_id = $${paramIndex++}`;
+          countParams.push(parseInt(userId));
         }
-      });
+        if (ipAddress) {
+          countQuery += ` AND ip_address = $${paramIndex++}`;
+          countParams.push(ipAddress);
+        }
+        if (macAddress) {
+          countQuery += ` AND mac_address = $${paramIndex++}`;
+          countParams.push(macAddress);
+        }
+        if (domain) {
+          countQuery += ` AND domain ILIKE $${paramIndex++}`;
+          countParams.push(`%${domain}%`);
+        }
+        if (startDate) {
+          countQuery += ` AND created_at >= $${paramIndex++}`;
+          countParams.push(startDate);
+        }
+        if (endDate) {
+          countQuery += ` AND created_at <= $${paramIndex++}`;
+          countParams.push(endDate);
+        }
+        if (method) {
+          countQuery += ` AND method = $${paramIndex++}`;
+          countParams.push(method);
+        }
+        if (statusCode) {
+          countQuery += ` AND status_code = $${paramIndex++}`;
+          countParams.push(parseInt(statusCode));
+        }
+
+        const countResult = await client.query(countQuery, countParams);
+        const total = parseInt(countResult.rows[0].total);
+
+        // Logları getir
+        const filters = {
+          userId: userId ? parseInt(userId) : null,
+          ipAddress,
+          macAddress,
+          domain,
+          startDate,
+          endDate,
+          method,
+          statusCode,
+          limit: parseInt(limit),
+          offset: offset
+        };
+
+        const logs = await getWebTrafficLogs(filters);
+
+        res.json({
+          logs,
+          pagination: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            total: total,
+            totalPages: Math.ceil(total / parseInt(limit))
+          }
+        });
+      } finally {
+        client.release();
+      }
     } catch (error) {
       next(error);
     }

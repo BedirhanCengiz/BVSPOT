@@ -43,7 +43,7 @@ export default function AdminUsers() {
   const loadUsers = async () => {
     try {
       setLoading(true);
-      const response = await adminAPI.getUsers(filters);
+      const response = await adminAPI.getUsers({ ...filters, limit: 10 });
       setUsers(response.data.users);
       setPagination(response.data.pagination);
     } catch (err: any) {

@@ -16,10 +16,12 @@ export default function AdminLogs() {
   const { language } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [logs, setLogs] = useState<any[]>([]);
+  const [pagination, setPagination] = useState<any>({});
   const [filters, setFilters] = useState({
     action: '',
     startDate: '',
     endDate: '',
+    page: 1,
   });
 
   useEffect(() => {
@@ -36,8 +38,9 @@ export default function AdminLogs() {
   const loadLogs = async () => {
     try {
       setLoading(true);
-      const response = await adminAPI.getLogs(filters);
+      const response = await adminAPI.getLogs({ ...filters, limit: 10, page: filters.page });
       setLogs(response.data.logs);
+      setPagination(response.data.pagination || {});
     } catch (err: any) {
       if (err.response?.status === 401) {
         router.push('/admin/login');
@@ -95,19 +98,19 @@ export default function AdminLogs() {
               type="text"
               placeholder={t('action', language)}
               value={filters.action}
-              onChange={(e) => setFilters({ ...filters, action: e.target.value })}
+              onChange={(e) => setFilters({ ...filters, action: e.target.value, page: 1 })}
               className="px-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900 bg-white transition-all duration-300 input-focus-glow hover:border-primary-300 text-sm"
             />
             <input
               type="date"
               value={filters.startDate}
-              onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+              onChange={(e) => setFilters({ ...filters, startDate: e.target.value, page: 1 })}
               className="px-5 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900 bg-white transition-all duration-300 input-focus-glow hover:border-primary-300"
             />
             <input
               type="date"
               value={filters.endDate}
-              onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
+              onChange={(e) => setFilters({ ...filters, endDate: e.target.value, page: 1 })}
               className="px-5 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900 bg-white transition-all duration-300 input-focus-glow hover:border-primary-300"
             />
             <button
@@ -175,6 +178,34 @@ export default function AdminLogs() {
                 </tbody>
               </table>
             </div>
+            
+            {/* Pagination */}
+            {pagination.totalPages > 1 && (
+              <div className="bg-slate-50 px-6 py-4 flex items-center justify-between border-t border-slate-200">
+                <div className="text-sm text-slate-700">
+                  {t('totalRecords', language)
+                    .replace('{total}', pagination.total?.toString() || '0')
+                    .replace('{page}', pagination.page?.toString() || '1')
+                    .replace('{totalPages}', pagination.totalPages?.toString() || '1')}
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setFilters({ ...filters, page: (pagination.page || 1) - 1 })}
+                    disabled={pagination.page === 1}
+                    className="px-4 py-2 border border-slate-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-100 text-sm text-slate-700 bg-white"
+                  >
+                    {t('previous', language)}
+                  </button>
+                  <button
+                    onClick={() => setFilters({ ...filters, page: (pagination.page || 1) + 1 })}
+                    disabled={pagination.page === pagination.totalPages}
+                    className="px-4 py-2 border border-slate-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-100 text-sm text-slate-700 bg-white"
+                  >
+                    {t('next', language)}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
