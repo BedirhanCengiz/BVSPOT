@@ -5,6 +5,10 @@ import { useRouter } from 'next/navigation';
 import { adminAPI } from '@/lib/api';
 import AdminLayout from '@/components/admin/AdminLayout';
 import DashboardStats from '@/components/admin/DashboardStats';
+import PageHeader from '@/components/admin/PageHeader';
+import LoadingSpinner from '@/components/admin/LoadingSpinner';
+import ErrorDisplay from '@/components/admin/ErrorDisplay';
+import { LayoutDashboard } from 'lucide-react';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -71,44 +75,29 @@ export default function AdminDashboard() {
     }
   };
 
-  if (loading) {
-    return (
-      <AdminLayout>
-        <div className="flex items-center justify-center h-screen">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-        </div>
-      </AdminLayout>
-    );
-  }
-
-  if (error) {
-    return (
-      <AdminLayout>
-        <div className="p-6">
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
-            <h2 className="font-bold mb-2">Hata</h2>
-            <p>{error}</p>
-          </div>
-          <button
-            onClick={() => {
-              setError(null);
-              setLoading(true);
-              loadDashboard();
-            }}
-            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-          >
-            Tekrar Dene
-          </button>
-        </div>
-      </AdminLayout>
-    );
-  }
-
   return (
     <AdminLayout>
-      <div className="p-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">Dashboard</h1>
-        <DashboardStats stats={stats} />
+      <div className="px-6 pt-4 pb-6">
+        <PageHeader
+          titleKey="dashboardTitle"
+          descriptionKey="dashboardDescription"
+          icon={LayoutDashboard}
+        />
+        
+        {loading ? (
+            <LoadingSpinner />
+          ) : error ? (
+            <ErrorDisplay
+              message={error}
+              onRetry={() => {
+                setError(null);
+                setLoading(true);
+                loadDashboard();
+              }}
+            />
+          ) : (
+            <DashboardStats stats={stats} />
+          )}
       </div>
     </AdminLayout>
   );

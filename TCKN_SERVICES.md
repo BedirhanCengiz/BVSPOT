@@ -194,3 +194,4 @@ Bu kısmı servis sağlayıcınızın API formatına göre güncelleyin.
 4. API formatını güncelleyin
 
 
+

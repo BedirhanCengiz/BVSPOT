@@ -126,6 +126,21 @@ export async function initializeDatabase() {
       )
     `);
 
+    // SSID Management table - SSID bazlı arkaplan yönetimi
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS ssids (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL UNIQUE,
+        ssid VARCHAR(100) NOT NULL UNIQUE,
+        background_image_url VARCHAR(500),
+        is_active BOOLEAN DEFAULT true,
+        description TEXT,
+        created_by INTEGER REFERENCES admin_users(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     // Indexes
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone);
@@ -142,6 +157,8 @@ export async function initializeDatabase() {
       CREATE INDEX IF NOT EXISTS idx_web_traffic_ip ON web_traffic_logs(ip_address);
       CREATE INDEX IF NOT EXISTS idx_web_traffic_domain ON web_traffic_logs(domain);
       CREATE INDEX IF NOT EXISTS idx_web_traffic_created ON web_traffic_logs(created_at);
+      CREATE INDEX IF NOT EXISTS idx_ssids_ssid ON ssids(ssid);
+      CREATE INDEX IF NOT EXISTS idx_ssids_active ON ssids(is_active);
     `);
 
     // Create default admin user if not exists

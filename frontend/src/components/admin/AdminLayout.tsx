@@ -11,8 +11,12 @@ import {
   LogOut,
   Menu,
   X,
-  Globe
+  Globe,
+  Wifi,
+  Sparkles
 } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { t } from '@/lib/i18n';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -21,6 +25,7 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { language } = useLanguage();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = () => {
@@ -32,40 +37,59 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   };
 
   const menuItems = [
-    { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/admin/users', label: 'Kullanıcılar', icon: Users },
-    { href: '/admin/logs', label: 'Loglar', icon: FileText },
-    { href: '/admin/traffic', label: 'Web Trafiği', icon: Globe },
-    { href: '/admin/settings', label: 'Ayarlar', icon: Settings },
+    { href: '/admin/dashboard', labelKey: 'dashboard', icon: LayoutDashboard },
+    { href: '/admin/users', labelKey: 'users', icon: Users },
+    { href: '/admin/ssids', labelKey: 'ssidManagement', icon: Wifi },
+    { href: '/admin/logs', labelKey: 'logs', icon: FileText },
+    { href: '/admin/traffic', labelKey: 'webTraffic', icon: Globe },
+    { href: '/admin/settings', labelKey: 'settings', icon: Settings },
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="admin-panel min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50 flex" style={{ caretColor: '#111827' }}>
       {/* Mobile Header */}
-      <div className="lg:hidden bg-white shadow-sm p-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold text-gray-900">BVSPOT Admin</h1>
+      <div className="lg:hidden bg-white/80 backdrop-blur-xl border-b border-slate-200/50 shadow-sm p-4 flex items-center justify-between sticky top-0 z-50">
+        <div className="flex items-center gap-2">
+          <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 p-1.5 rounded-lg shadow-lg">
+            <Sparkles className="w-5 h-5 text-white" />
+          </div>
+          <h1 className="text-lg font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+            BVSPOT
+          </h1>
+        </div>
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="p-2 rounded-lg hover:bg-gray-100"
+          className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
         >
-          {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          {sidebarOpen ? <X className="w-5 h-5 text-slate-700" /> : <Menu className="w-5 h-5 text-slate-700" />}
         </button>
       </div>
 
       {/* Sidebar */}
-      <div
+      <aside
         className={`${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } lg:translate-x-0 fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transition-transform duration-300 ease-in-out`}
+        } lg:translate-x-0 fixed lg:static inset-y-0 left-0 z-20 w-56 bg-white/90 backdrop-blur-xl border-r border-slate-200/50 shadow-xl transition-transform duration-300 ease-in-out flex-shrink-0`}
       >
         <div className="h-full flex flex-col">
-          <div className="p-6 border-b">
-            <h2 className="text-2xl font-bold text-gray-900">BVSPOT</h2>
-            <p className="text-sm text-gray-600">Yönetim Paneli</p>
+          {/* Logo Section */}
+          <div className="p-4 border-b border-slate-200/50">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 p-2 rounded-lg shadow-lg">
+                <Sparkles className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                  BVSPOT
+                </h2>
+                <p className="text-xs text-slate-500 font-medium">{t('adminPanel', language)}</p>
+              </div>
+            </div>
           </div>
 
-          <nav className="flex-1 p-4 space-y-2">
-            {menuItems.map((item) => {
+          {/* Navigation */}
+          <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+            {menuItems.map((item, index) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
               return (
@@ -73,44 +97,49 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   key={item.href}
                   href={item.href}
                   onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  className={`group flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all duration-200 ${
                     isActive
-                      ? 'bg-primary-50 text-primary-700 font-semibold'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/30'
+                      : 'text-slate-700 hover:bg-slate-100/80 hover:text-indigo-600'
                   }`}
                 >
-                  <Icon className="w-5 h-5" />
-                  {item.label}
+                  <Icon className={`w-4 h-4 transition-transform flex-shrink-0 ${isActive ? 'text-white' : 'text-slate-500 group-hover:text-indigo-600'}`} />
+                  <span className={`font-medium text-xs ${isActive ? 'text-white' : 'text-slate-700 group-hover:text-indigo-600'}`}>
+                    {t(item.labelKey, language)}
+                  </span>
+                  {isActive && (
+                    <div className="ml-auto w-1.5 h-1.5 bg-white rounded-full"></div>
+                  )}
                 </Link>
               );
             })}
           </nav>
 
-          <div className="p-4 border-t">
+          {/* Logout Button */}
+          <div className="p-3 border-t border-slate-200/50">
             <button
               onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-red-600 hover:bg-red-50 transition-all duration-200 font-medium text-xs group"
             >
-              <LogOut className="w-5 h-5" />
-              Çıkış Yap
+              <LogOut className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+              {t('logout', language)}
             </button>
           </div>
         </div>
-      </div>
+      </aside>
 
       {/* Overlay for mobile */}
       {sidebarOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
+          className="lg:hidden fixed inset-0 bg-black/20 backdrop-blur-sm z-40 transition-opacity"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Main Content */}
-      <div className="lg:ml-64">
-        <main>{children}</main>
-      </div>
+      <section className="lg:ml-13 flex-1 min-w-0 overflow-x-hidden">
+        <main className="min-h-screen bg-transparent max-w-[1600px] mx-auto">{children}</main>
+      </section>
     </div>
   );
 }
-

@@ -83,11 +83,27 @@ select,
 textarea {
   color: #111827 !important; /* text-gray-900 */
   background-color: #ffffff !important;
+  caret-color: #111827 !important; /* Siyah cursor */
 }
 
 input::placeholder,
 textarea::placeholder {
   color: #9ca3af !important; /* text-gray-400 */
+}
+
+/* Admin panel için text cursor rengi - Siyah */
+[class*="admin"] *,
+[href*="/admin"] *,
+body:has([class*="admin"]) * {
+  caret-color: #111827 !important;
+}
+
+/* Admin panel sayfaları için özel cursor rengi */
+.admin-panel *,
+.admin-panel input,
+.admin-panel textarea,
+.admin-panel [contenteditable] {
+  caret-color: #111827 !important;
 }
 
 /* Glassmorphism efekti */

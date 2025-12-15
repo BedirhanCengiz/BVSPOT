@@ -207,3 +207,4 @@ C: NVİ servisi için ad ve soyad gereklidir. Eğer yoksa algoritmik kontrol kul
 C: Otomatik olarak algoritmik kontrol kullanılır (fallback mekanizması).
 
 
+

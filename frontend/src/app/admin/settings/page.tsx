@@ -1,14 +1,25 @@
 'use client';
 
 import AdminLayout from '@/components/admin/AdminLayout';
+import PageHeader from '@/components/admin/PageHeader';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { t } from '@/lib/i18n';
+import { Settings } from 'lucide-react';
 
 export default function AdminSettings() {
+  const { language } = useLanguage();
+  
   return (
     <AdminLayout>
-      <div className="p-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">Ayarlar</h1>
-        <div className="bg-white rounded-lg shadow p-6">
-          <p className="text-gray-600">Ayarlar sayfası yakında eklenecek...</p>
+      <div className="px-6 pt-4 pb-6">
+        <PageHeader
+          titleKey="settingsTitle"
+          descriptionKey="settingsDescription"
+          icon={Settings}
+        />
+        
+        <div className="bg-white rounded-xl border border-slate-200 p-8 shadow-sm">
+          <p className="text-slate-600 text-center">{t('settingsComingSoon', language)}</p>
         </div>
       </div>
     </AdminLayout>

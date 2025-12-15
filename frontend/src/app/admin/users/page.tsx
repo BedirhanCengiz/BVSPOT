@@ -4,9 +4,15 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import AdminLayout from '@/components/admin/AdminLayout';
 import UsersTable from '@/components/admin/UsersTable';
+import PageHeader from '@/components/admin/PageHeader';
+import LoadingSpinner from '@/components/admin/LoadingSpinner';
 import { adminAPI } from '@/lib/api';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { t } from '@/lib/i18n';
+import { Users } from 'lucide-react';
 
 export default function AdminUsers() {
+  const { language } = useLanguage();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<any[]>([]);
@@ -50,12 +56,12 @@ export default function AdminUsers() {
   };
 
   const handleBlock = async (id: number) => {
-    if (confirm('Bu kullanıcıyı engellemek istediğinize emin misiniz?')) {
+    if (confirm(t('confirmBlockUser', language))) {
       try {
         await adminAPI.blockUser(id);
         loadUsers();
       } catch (err) {
-        alert('İşlem başarısız');
+        alert(t('error', language));
       }
     }
   };
@@ -74,72 +80,72 @@ export default function AdminUsers() {
   };
 
   const handleApprove = async (id: number) => {
-    if (confirm('Bu pasaport kaydını onaylamak istediğinize emin misiniz?')) {
+    if (confirm(t('confirmApprovePassport', language))) {
       try {
         await adminAPI.approveUser(id);
         loadUsers();
       } catch (err) {
-        alert('Onaylama başarısız');
+        alert(t('approvalFailed', language));
       }
     }
   };
 
   const handleReject = async (id: number) => {
-    if (confirm('Bu pasaport kaydını reddetmek istediğinize emin misiniz?')) {
+    if (confirm(t('confirmRejectPassport', language))) {
       try {
         await adminAPI.rejectUser(id);
         loadUsers();
       } catch (err) {
-        alert('Reddetme başarısız');
+        alert(t('rejectionFailed', language));
       }
     }
   };
 
   return (
     <AdminLayout>
-      <div className="p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Kullanıcılar</h1>
-        </div>
+      <div className="px-6 pt-4 pb-6">
+        <PageHeader
+          titleKey="usersTitle"
+          descriptionKey="usersDescription"
+          icon={Users}
+        />
 
         {/* Filters */}
-        <div className="bg-white rounded-lg shadow p-4 mb-6">
+        <div className="bg-white rounded-xl border border-slate-200 p-4 mb-4 shadow-sm">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <input
               type="text"
-              placeholder="Ara (isim, telefon, TCKN)..."
+              placeholder={t('searchPlaceholder', language)}
               value={filters.search}
               onChange={(e) => setFilters({ ...filters, search: e.target.value, page: 1 })}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              className="px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 bg-white transition-all duration-200 text-sm"
             />
             <select
               value={filters.status}
               onChange={(e) => setFilters({ ...filters, status: e.target.value, page: 1 })}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              className="px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 bg-white transition-all duration-200 text-sm"
             >
-              <option value="">Tüm Durumlar</option>
-              <option value="pending">Beklemede</option>
-              <option value="verified">Doğrulanmış</option>
-              <option value="active">Aktif</option>
-              <option value="blocked">Engellenmiş</option>
+              <option value="">{t('allStatuses', language)}</option>
+              <option value="pending">{t('statusPending', language)}</option>
+              <option value="verified">{t('statusVerified', language)}</option>
+              <option value="active">{t('statusActive', language)}</option>
+              <option value="blocked">{t('statusBlocked', language)}</option>
             </select>
             <button
               onClick={() => setFilters({ ...filters, pendingPassport: filters.pendingPassport ? '' : 'true', page: 1 })}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              className={`px-4 py-2.5 rounded-lg font-medium transition-all duration-200 text-sm ${
                 filters.pendingPassport
-                  ? 'bg-yellow-500 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
               }`}
             >
-              Pasaport Bekleyenler
+              {t('pendingPassports', language)}
             </button>
           </div>
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-          </div>
+          <LoadingSpinner />
         ) : (
           <UsersTable
             users={users}

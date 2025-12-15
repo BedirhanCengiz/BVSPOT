@@ -24,7 +24,7 @@ router.post('/register',
     body('tckn').optional().matches(/^[0-9]{11}$/).withMessage('TCKN 11 haneli olmalıdır'),
     body('passportNo').optional().isLength({ min: 5, max: 50 }).withMessage('Pasaport numarası 5-50 karakter arasında olmalıdır'),
     body('foreignIdNo').optional().isLength({ min: 5, max: 50 }).withMessage('Yabancı kimlik numarası 5-50 karakter arasında olmalıdır'),
-    body('password').optional().isLength({ min: 6 }).withMessage('Şifre en az 6 karakter olmalıdır'),
+    body('password').isLength({ min: 6 }).withMessage('Şifre en az 6 karakter olmalıdır'),
     body('birthDate').isISO8601().withMessage('Geçerli bir doğum tarihi giriniz'),
     body('language').optional().isIn(['tr', 'en']).withMessage('Geçerli bir dil seçiniz'),
     body('kvkkAccepted').equals('true').withMessage('KVKK onayı zorunludur'),
@@ -78,7 +78,7 @@ router.post('/register',
             verified: tcknValidation.verified 
           });
           return res.status(400).json({
-            error: 'TCKN doğrulama hatası',
+            error: 'TCKN geçersiz',
             details: tcknValidation.errors,
             verified: tcknValidation.verified
           });
@@ -102,11 +102,8 @@ router.post('/register',
         idValue = foreignIdNo;
       }
 
-      // Şifre hash'leme
-      let passwordHash = null;
-      if (password) {
-        passwordHash = await bcrypt.hash(password, 10);
-      }
+      // Şifre hash'leme (artık zorunlu)
+      const passwordHash = await bcrypt.hash(password, 10);
 
       // Kullanıcı zaten kayıtlı mı kontrol et
       const client = await pool.connect();
@@ -405,8 +402,6 @@ router.post('/verify-otp',
  */
 router.post('/login',
   [
-    body('idType').isIn(['tckn', 'passport', 'foreign_id']).withMessage('Geçerli bir kimlik tipi seçiniz'),
-    body('idNumber').notEmpty().withMessage('Kimlik numarası gereklidir'),
     body('phone').matches(/^[0-9]{10,11}$/).withMessage('Geçerli bir telefon numarası giriniz'),
     body('password').notEmpty().withMessage('Şifre gereklidir')
   ],
@@ -417,33 +412,19 @@ router.post('/login',
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { idType, idNumber, phone, password, macAddress: bodyMacAddress } = req.body;
+      const { phone, password, macAddress: bodyMacAddress } = req.body;
 
       // MAC adresini otomatik çek (middleware'den veya body'den)
       const macAddress = req.macAddress || bodyMacAddress || null;
 
       const client = await pool.connect();
       try {
-        // Kimlik tipine göre kullanıcıyı bul
-        let query = 'SELECT * FROM users WHERE phone = $1';
-        let params = [phone];
-        
-        if (idType === 'tckn') {
-          query += ' AND tckn = $2';
-          params.push(idNumber);
-        } else if (idType === 'passport') {
-          query += ' AND passport_no = $2';
-          params.push(idNumber);
-        } else if (idType === 'foreign_id') {
-          query += ' AND foreign_id_no = $2';
-          params.push(idNumber);
-        }
-
-        const result = await client.query(query, params);
+        // Sadece telefon numarası ile kullanıcıyı bul
+        const result = await client.query('SELECT * FROM users WHERE phone = $1', [phone]);
 
         if (result.rows.length === 0) {
-          await createLog(null, 'login_failed', req, { phone, idType, reason: 'user_not_found' });
-          return res.status(401).json({ error: 'Kimlik bilgileri veya şifre hatalı' });
+          await createLog(null, 'login_failed', req, { phone, reason: 'user_not_found' });
+          return res.status(401).json({ error: 'Telefon numarası veya şifre hatalı' });
         }
 
         const user = result.rows[0];
@@ -458,8 +439,8 @@ router.post('/login',
         const isValid = await bcrypt.compare(password, user.password_hash);
 
         if (!isValid) {
-          await createLog(user.id, 'login_failed', req, { phone, idType, reason: 'invalid_password' });
-          return res.status(401).json({ error: 'Kimlik bilgileri veya şifre hatalı' });
+          await createLog(user.id, 'login_failed', req, { phone, reason: 'invalid_password' });
+          return res.status(401).json({ error: 'Telefon numarası veya şifre hatalı' });
         }
 
         // Kullanıcı durumu kontrolü

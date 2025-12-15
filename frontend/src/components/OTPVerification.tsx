@@ -121,26 +121,26 @@ export default function OTPVerification({
   const maskedPhone = phone.substring(0, 4) + '***' + phone.substring(7);
 
   return (
-    <div className="glass-strong rounded-3xl shadow-2xl p-8 animate-fade-in hover-lift">
-      <div className="text-center mb-8">
-        <div className="flex justify-center mb-4">
-          <div className="bg-gradient-to-br from-primary-500 to-purple-600 p-4 rounded-2xl shadow-glow animate-float">
-            <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div className="glass-strong rounded-3xl shadow-2xl p-5 animate-fade-in hover-lift">
+      <div className="text-center mb-4">
+        <div className="flex justify-center mb-2">
+          <div className="bg-gradient-to-br from-primary-500 to-purple-600 p-3 rounded-2xl shadow-glow animate-float">
+            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
           </div>
         </div>
-        <h1 className="text-4xl font-extrabold gradient-text mb-2 animate-slide-down">
+        <h1 className="text-2xl font-extrabold gradient-text mb-1 animate-slide-down">
           {t('verificationCode', language)}
         </h1>
-        <p className="text-gray-600 text-lg animate-slide-up">
+        <p className="text-gray-600 text-sm animate-slide-up">
           {t('otpSentTo', language)} <span className="font-semibold text-gray-800">{maskedPhone}</span>
         </p>
       </div>
 
-      <div className="space-y-6 animate-fade-in">
+      <div className="space-y-3 animate-fade-in">
         {/* OTP Input */}
-        <div className="flex justify-center gap-3 animate-slide-up">
+        <div className="flex justify-center gap-2 animate-slide-up">
           {code.map((digit, index) => (
             <input
               key={index}
@@ -151,7 +151,7 @@ export default function OTPVerification({
               value={digit}
               onChange={(e) => handleCodeChange(index, e.target.value)}
               onKeyDown={(e) => handleKeyDown(index, e)}
-              className={`w-14 h-16 text-center text-3xl font-bold border-2 rounded-xl focus:ring-4 focus:ring-primary-300 focus:border-primary-500 text-gray-900 bg-white transition-all duration-300 input-focus-glow hover:border-primary-400 hover:scale-105 ${
+              className={`w-11 h-12 text-center text-2xl font-bold border-2 rounded-lg focus:ring-4 focus:ring-primary-300 focus:border-primary-500 text-gray-900 bg-white transition-all duration-300 input-focus-glow hover:border-primary-400 hover:scale-105 ${
                 digit ? 'border-primary-500 bg-primary-50 shadow-lg' : 'border-gray-300'
               }`}
               disabled={loading}
@@ -162,16 +162,16 @@ export default function OTPVerification({
 
         {/* Hata Mesajı */}
         {error && (
-          <div className="bg-gradient-to-r from-red-50 to-red-100 border-2 border-red-300 text-red-700 px-5 py-4 rounded-xl shadow-lg text-center animate-slide-down flex flex-col items-center gap-2">
-            <div className="flex items-center gap-2">
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+          <div className="bg-gradient-to-r from-red-50 to-red-100 border-2 border-red-300 text-red-700 px-3 py-2 rounded-lg shadow-lg text-center animate-slide-down flex flex-col items-center gap-1">
+            <div className="flex items-center gap-1">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
               </svg>
-              <span className="font-medium">{error}</span>
+              <span className="font-medium text-xs">{error}</span>
             </div>
             {attemptsLeft !== null && (
-              <p className="text-sm font-semibold bg-red-200 px-3 py-1 rounded-full">
-                Kalan deneme hakkı: {attemptsLeft}
+              <p className="text-xs font-semibold bg-red-200 px-2 py-0.5 rounded-full">
+                {t('attemptsLeft', language)}: {attemptsLeft}
               </p>
             )}
           </div>
@@ -182,7 +182,7 @@ export default function OTPVerification({
           <button
             onClick={sendOTP}
             disabled={sendingOTP || countdown > 0}
-            className="text-primary-600 hover:text-primary-700 font-semibold disabled:text-gray-400 disabled:cursor-not-allowed transition-all duration-300 hover:scale-105 flex items-center gap-2 mx-auto"
+            className="text-primary-600 hover:text-primary-700 font-semibold text-xs disabled:text-gray-400 disabled:cursor-not-allowed transition-all duration-300 hover:scale-105 flex items-center gap-1 mx-auto"
           >
             {sendingOTP ? (
               <>
@@ -211,17 +211,17 @@ export default function OTPVerification({
         </div>
 
         {/* Butonlar */}
-        <div className="flex gap-4 animate-slide-up" style={{ animationDelay: '0.3s' }}>
+        <div className="flex gap-2 animate-slide-up" style={{ animationDelay: '0.3s' }}>
           <button
             onClick={onBack}
-            className="flex-1 border-2 border-gray-300 text-gray-700 py-4 rounded-xl font-semibold hover:bg-white/80 hover:border-primary-300 hover:scale-[1.02] transition-all duration-300 shadow-md hover:shadow-lg"
+            className="flex-1 border-2 border-gray-300 text-gray-700 py-2.5 rounded-xl font-semibold text-sm hover:bg-white/80 hover:border-primary-300 hover:scale-[1.02] transition-all duration-300 shadow-md hover:shadow-lg"
           >
             ← {t('back', language)}
           </button>
           <button
             onClick={() => verifyOTP()}
             disabled={loading || code.some((c) => !c)}
-            className="flex-1 bg-gradient-to-r from-primary-600 to-purple-600 text-white py-4 rounded-xl font-bold hover:shadow-xl hover:scale-[1.02] focus:outline-none focus:ring-4 focus:ring-primary-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all duration-300 relative overflow-hidden btn-glow group"
+            className="flex-1 bg-gradient-to-r from-primary-600 to-purple-600 text-white py-2.5 rounded-xl font-bold text-sm hover:shadow-xl hover:scale-[1.02] focus:outline-none focus:ring-4 focus:ring-primary-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all duration-300 relative overflow-hidden btn-glow group"
           >
             <span className="relative z-10 flex items-center justify-center gap-2">
               {loading ? (

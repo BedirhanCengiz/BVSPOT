@@ -1,5 +1,6 @@
 import express from 'express';
 import { body, validationResult } from 'express-validator';
+import bcrypt from 'bcryptjs';
 import { requireAdmin } from '../middleware/auth.js';
 import { pool } from '../database/db.js';
 import { getLogs } from '../services/logService.js';
@@ -23,6 +24,7 @@ router.get('/dashboard', async (req, res, next) => {
         SELECT 
           COUNT(*) FILTER (WHERE DATE(created_at) = CURRENT_DATE) as today_registrations,
           COUNT(*) FILTER (WHERE status = 'active' AND connection_start_time::date = CURRENT_DATE) as today_active,
+          COUNT(*) FILTER (WHERE status = 'active') as total_active,
           COUNT(*) FILTER (WHERE status = 'verified') as total_verified,
           COUNT(*) FILTER (WHERE status = 'blocked') as total_blocked
         FROM users
@@ -165,12 +167,17 @@ router.get('/users', async (req, res, next) => {
       const countQuery = query.replace(/SELECT.*FROM/, 'SELECT COUNT(*) as total FROM').replace(/ORDER BY.*$/, '');
       const countResult = await client.query(countQuery.replace(/LIMIT.*OFFSET.*$/, ''), params.slice(0, -2));
 
-      // Hassas bilgileri maskele
-      const users = result.rows.map(user => ({
-        ...user,
-        tckn: user.tckn.substring(0, 5) + '****' + user.tckn.substring(9),
-        phone: user.phone.substring(0, 4) + '***' + user.phone.substring(7)
-      }));
+      // Admin için telefon numarası maskelenmemiş döner (admin yetkili kullanıcı)
+      // TCKN güvenlik nedeniyle hala maskelenmiş kalır
+      const users = result.rows.map(user => {
+        const maskedUser = { ...user };
+        // TCKN'yi maskele (eğer varsa)
+        if (maskedUser.tckn && maskedUser.tckn.length >= 11) {
+          maskedUser.tckn = maskedUser.tckn.substring(0, 5) + '****' + maskedUser.tckn.substring(9);
+        }
+        // Telefon numarası maskelenmemiş - admin düzenleme yapabilmeli
+        return maskedUser;
+      });
 
       res.json({
         users,
@@ -213,7 +220,11 @@ router.get('/users/:id', async (req, res, next) => {
       }
 
       const user = result.rows[0];
-      // TCKN ve telefon maskelenmiş halde döner (zaten maskelenmiş)
+      // Admin için telefon numarası maskelenmemiş döner (admin düzenleme yapabilmeli)
+      // TCKN güvenlik nedeniyle maskelenmiş kalır
+      if (user.tckn && user.tckn.length >= 11) {
+        user.tckn = user.tckn.substring(0, 5) + '****' + user.tckn.substring(9);
+      }
 
       res.json({ user });
     } finally {
@@ -417,13 +428,13 @@ router.post('/users/:id/reject', async (req, res, next) => {
 
 /**
  * PUT /api/admin/users/:id
- * Kullanıcı bilgilerini güncelle (TCKN, Pasaport, Yabancı Kimlik dahil)
+ * Kullanıcı bilgilerini güncelle (Şifre değiştirme dahil, TCKN değiştirilemez)
  */
 router.put('/users/:id',
   [
     body('fullName').optional().trim().isLength({ min: 3, max: 255 }).withMessage('Ad Soyad 3-255 karakter arasında olmalıdır'),
     body('phone').optional().matches(/^[0-9]{10,11}$/).withMessage('Geçerli bir telefon numarası giriniz'),
-    body('tckn').optional().matches(/^[0-9]{11}$/).withMessage('TCKN 11 haneli olmalıdır'),
+    body('password').optional().isLength({ min: 6 }).withMessage('Şifre en az 6 karakter olmalıdır'),
     body('passportNo').optional().isLength({ min: 5, max: 50 }).withMessage('Pasaport numarası 5-50 karakter arasında olmalıdır'),
     body('foreignIdNo').optional().isLength({ min: 5, max: 50 }).withMessage('Yabancı kimlik numarası 5-50 karakter arasında olmalıdır'),
     body('status').optional().isIn(['pending', 'verified', 'active', 'blocked', 'expired', 'awaiting_admin_approval']).withMessage('Geçerli bir durum seçiniz'),
@@ -437,7 +448,7 @@ router.put('/users/:id',
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { fullName, phone, tckn, passportNo, foreignIdNo, status, quotaMb, speedLimitMbps } = req.body;
+      const { fullName, phone, password, passportNo, foreignIdNo, status, quotaMb, speedLimitMbps } = req.body;
       const updates = [];
       const params = [];
       let paramIndex = 1;
@@ -450,10 +461,13 @@ router.put('/users/:id',
         updates.push(`phone = $${paramIndex++}`);
         params.push(phone);
       }
-      if (tckn !== undefined) {
-        updates.push(`tckn = $${paramIndex++}`);
-        params.push(tckn);
+      // Şifre hash'leme
+      if (password !== undefined) {
+        const passwordHash = await bcrypt.hash(password, 10);
+        updates.push(`password_hash = $${paramIndex++}`);
+        params.push(passwordHash);
       }
+      // TCKN değiştirilemez - kaldırıldı
       if (passportNo !== undefined) {
         updates.push(`passport_no = $${paramIndex++}`);
         params.push(passportNo);

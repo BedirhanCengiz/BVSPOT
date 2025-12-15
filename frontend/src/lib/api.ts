@@ -14,7 +14,10 @@ api.interceptors.request.use(
   (config) => {
     if (typeof window !== 'undefined') {
       // Admin route'ları için adminToken kullan
-      const isAdminRoute = config.url?.includes('/admin');
+      // /admin, /ssids, /traffic/logs, /traffic/stats admin endpoint'leri
+      const isAdminRoute = config.url?.includes('/admin') || 
+                          config.url?.includes('/ssids') ||
+                          (config.url?.includes('/traffic') && (config.url?.includes('/logs') || config.url?.includes('/stats')));
       const token = isAdminRoute 
         ? localStorage.getItem('adminToken') 
         : localStorage.getItem('token');
@@ -23,7 +26,8 @@ api.interceptors.request.use(
       }
       console.log(`API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`, {
         hasToken: !!token,
-        isAdminRoute
+        isAdminRoute,
+        tokenType: isAdminRoute ? 'adminToken' : 'token'
       });
     }
     return config;
@@ -59,15 +63,13 @@ api.interceptors.response.use(
       }
     }
     
-    if (error.response?.status === 401) {
-      console.log('401 Unauthorized - Token temizleniyor');
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      console.log('401/403 Unauthorized - Token temizleniyor');
       if (typeof window !== 'undefined') {
         localStorage.removeItem('token');
         localStorage.removeItem('adminToken');
-        // Admin panelinde ise admin login'e yönlendir
-        if (window.location.pathname.startsWith('/admin')) {
-          window.location.href = '/admin/login';
-        }
+        // Yönlendirme işlemini sayfa component'lerine bırak
+        // Burada sadece token'ı temizliyoruz
       }
     }
     return Promise.reject(error);
@@ -77,7 +79,7 @@ api.interceptors.response.use(
 // Auth API
 export const authAPI = {
   register: (data: any) => api.post('/auth/register', data),
-  login: (data: { idType: string; idNumber: string; phone: string; password: string; macAddress?: string }) =>
+  login: (data: { phone: string; password: string; macAddress?: string }) =>
     api.post('/auth/login', data),
   validateTCKN: (tckn: string, birthDate: string) =>
     api.post('/auth/validate-tckn', { tckn, birthDate }),
@@ -116,6 +118,22 @@ export const adminAPI = {
   // Web Traffic API
   getWebTrafficLogs: (params?: any) => api.get('/traffic/logs', { params }),
   getWebTrafficStats: (params?: any) => api.get('/traffic/stats', { params }),
+  // SSID API
+  getSSIDs: () => api.get('/ssids'),
+  getSSID: (ssid: string) => api.get(`/ssids/${ssid}`),
+  getPublicSSIDs: () => api.get('/ssids/public'),
+  createSSID: (data: any) => api.post('/ssids', data),
+  updateSSID: (id: number, data: any) => api.put(`/ssids/${id}`, data),
+  deleteSSID: (id: number) => api.delete(`/ssids/${id}`),
+  uploadSSIDBackground: (id: number, file: File) => {
+    const formData = new FormData();
+    formData.append('backgroundImage', file);
+    return api.post(`/ssids/${id}/background`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
 };
 
 export default api;
