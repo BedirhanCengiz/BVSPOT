@@ -90,10 +90,18 @@ export default function AdminSSIDs() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // Backend camelCase bekliyor, frontend snake_case kullanıyor
+      const apiData = {
+        name: formData.name,
+        ssid: formData.ssid,
+        description: formData.description,
+        isActive: formData.is_active, // is_active -> isActive dönüşümü
+      };
+      
       if (editingSSID) {
-        await adminAPI.updateSSID(editingSSID.id, formData);
+        await adminAPI.updateSSID(editingSSID.id, apiData);
       } else {
-        await adminAPI.createSSID(formData);
+        await adminAPI.createSSID(apiData);
       }
       setShowForm(false);
       setEditingSSID(null);

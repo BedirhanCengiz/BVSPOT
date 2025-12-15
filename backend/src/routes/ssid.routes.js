@@ -118,7 +118,7 @@ router.post('/',
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { name, ssid, description } = req.body;
+      const { name, ssid, description, isActive } = req.body;
       
       // SSID zaten var mı kontrol et
       const existing = await getSSIDBySSID(ssid);
@@ -130,6 +130,7 @@ router.post('/',
         name,
         ssid,
         description,
+        isActive: isActive !== undefined ? isActive : true, // Varsayılan olarak aktif
         createdBy: req.admin.id
       });
 

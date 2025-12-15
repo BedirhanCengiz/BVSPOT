@@ -79,13 +79,13 @@ export async function getSSIDById(id) {
 export async function createSSID(data) {
   const client = await pool.connect();
   try {
-    const { name, ssid, backgroundImageUrl, description, createdBy } = data;
+    const { name, ssid, backgroundImageUrl, description, isActive, createdBy } = data;
     
     const result = await client.query(
-      `INSERT INTO ssids (name, ssid, background_image_url, description, created_by)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO ssids (name, ssid, background_image_url, description, is_active, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
-      [name, ssid, backgroundImageUrl || null, description || null, createdBy]
+      [name, ssid, backgroundImageUrl || null, description || null, isActive !== undefined ? isActive : true, createdBy]
     );
     
     return result.rows[0];
