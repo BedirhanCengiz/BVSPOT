@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Users, Activity, CheckCircle, XCircle, TrendingUp, X } from 'lucide-react';
+import { Users, Activity, CheckCircle, XCircle, TrendingUp, X, Database, Globe, FileText } from 'lucide-react';
 import { format, subDays, parseISO } from 'date-fns';
 import { adminAPI } from '@/lib/api';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
@@ -28,21 +28,41 @@ export default function DashboardStats({ stats }: DashboardStatsProps) {
     };
   }, [selectedCard]);
 
-  if (!stats) return null;
+  // Debug: stats verilerini kontrol et
+  useEffect(() => {
+    if (stats) {
+      console.log('Dashboard Stats:', stats);
+      console.log('Daily Stats:', stats.daily);
+      console.log('Today Registrations:', stats.daily?.today_registrations);
+      console.log('Today Registrations Type:', typeof stats.daily?.today_registrations);
+      console.log('Traffic Stats:', stats.traffic);
+    }
+  }, [stats]);
+
+  if (!stats) {
+    return (
+      <div className="text-center py-12 text-slate-500">
+        <p>İstatistikler yükleniyor...</p>
+      </div>
+    );
+  }
 
   const statCards = [
     {
       id: 'today_registrations',
       title: 'Bugünkü Kayıtlar',
-      value: stats.daily?.today_registrations || 0,
-      icon: Users,
-      gradient: 'from-blue-500 to-cyan-500',
-      bgGradient: 'from-blue-50 to-cyan-50',
-      iconColor: '#3b82f6',
+      value: (stats.daily && typeof stats.daily.today_registrations !== 'undefined') 
+        ? stats.daily.today_registrations 
+        : 0,
+      icon: TrendingUp,
+      gradient: 'from-green-500 to-emerald-500',
+      bgGradient: 'from-green-50 to-emerald-50',
+      iconColor: '#22c55e',
       filter: { 
         startDate: new Date().toISOString().split('T')[0],
         endDate: new Date().toISOString().split('T')[0]
       },
+      showModal: true,
     },
     {
       id: 'active',
@@ -53,16 +73,62 @@ export default function DashboardStats({ stats }: DashboardStatsProps) {
       bgGradient: 'from-emerald-50 to-teal-50',
       iconColor: '#10b981',
       filter: { status: 'active' },
+      showModal: true,
+    },
+    {
+      id: 'online',
+      title: 'Online Kullanıcılar',
+      value: stats.onlineUsers || 0,
+      icon: CheckCircle,
+      gradient: 'from-indigo-500 to-purple-500',
+      bgGradient: 'from-indigo-50 to-purple-50',
+      iconColor: '#6366f1',
+      filter: { status: 'active' },
+      showModal: true,
+    },
+    {
+      id: 'total_traffic',
+      title: 'Toplam Trafik',
+      value: `${stats.traffic?.total_traffic_gb || 0} GB`,
+      icon: Globe,
+      gradient: 'from-orange-500 to-amber-500',
+      bgGradient: 'from-orange-50 to-amber-50',
+      iconColor: '#f97316',
+      filter: {},
+      showModal: false,
+    },
+    {
+      id: 'today_traffic',
+      title: 'Bugünkü Trafik',
+      value: `${stats.traffic?.today_traffic_mb || 0} MB`,
+      icon: Database,
+      gradient: 'from-pink-500 to-rose-500',
+      bgGradient: 'from-pink-50 to-rose-50',
+      iconColor: '#ec4899',
+      filter: {},
+      showModal: false,
+    },
+    {
+      id: 'total_logs',
+      title: 'Toplam Loglar',
+      value: stats.traffic?.total_logs || 0,
+      icon: FileText,
+      gradient: 'from-slate-500 to-gray-500',
+      bgGradient: 'from-slate-50 to-gray-50',
+      iconColor: '#64748b',
+      filter: {},
+      showModal: false,
     },
     {
       id: 'verified',
-      title: 'Doğrulanmış Toplam',
+      title: 'Doğrulanmış',
       value: stats.daily?.total_verified || 0,
       icon: CheckCircle,
       gradient: 'from-purple-500 to-pink-500',
       bgGradient: 'from-purple-50 to-pink-50',
       iconColor: '#a855f7',
       filter: { status: 'verified' },
+      showModal: true,
     },
     {
       id: 'blocked',
@@ -73,21 +139,13 @@ export default function DashboardStats({ stats }: DashboardStatsProps) {
       bgGradient: 'from-red-50 to-rose-50',
       iconColor: '#ef4444',
       filter: { status: 'blocked' },
-    },
-    {
-      id: 'online',
-      title: 'Online Kullanıcılar',
-      value: stats.onlineUsers || 0,
-      icon: TrendingUp,
-      gradient: 'from-indigo-500 to-purple-500',
-      bgGradient: 'from-indigo-50 to-purple-50',
-      iconColor: '#6366f1',
-      filter: { status: 'active' },
+      showModal: true,
     },
   ];
 
   const handleCardClick = async (card: any) => {
-    if (card.value === 0) return;
+    // Eğer modal gösterilmeyecekse veya değer 0 ise işlem yapma
+    if (!card.showModal || (typeof card.value === 'number' && card.value === 0)) return;
     
     setSelectedCard(card.id);
     setLoading(true);
@@ -134,26 +192,42 @@ export default function DashboardStats({ stats }: DashboardStatsProps) {
   return (
     <div className="space-y-4">
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
             <div
               key={index}
               onClick={() => handleCardClick(stat)}
-              className={`bg-white rounded-xl border border-slate-200 p-4 cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-indigo-300 hover:-translate-y-0.5 ${
-                stat.value === 0 ? 'opacity-50 cursor-not-allowed' : ''
+              className={`bg-white dark:bg-white rounded-xl border border-slate-200 dark:border-slate-300 p-4 transition-all duration-200 hover:shadow-lg hover:border-indigo-300 dark:hover:border-indigo-500 hover:-translate-y-0.5 ${
+                stat.showModal && (typeof stat.value === 'number' && stat.value === 0) 
+                  ? 'opacity-50 cursor-not-allowed' 
+                  : stat.showModal 
+                    ? 'cursor-pointer' 
+                    : 'cursor-default'
               }`}
             >
               <div className="flex items-center justify-between mb-3">
-                <div className={`p-2 rounded-lg bg-gradient-to-br ${stat.bgGradient} flex items-center justify-center`}>
+                <div className={`p-2 rounded-lg bg-gradient-to-br ${stat.bgGradient} dark:bg-gradient-to-br ${stat.bgGradient} flex items-center justify-center`}>
                   <Icon className="w-5 h-5" style={{ color: stat.iconColor }} />
                 </div>
               </div>
               <div>
-                <p className="text-xs font-medium text-slate-600 mb-1.5">{stat.title}</p>
-                <p className={`text-2xl font-bold bg-gradient-to-br ${stat.gradient} bg-clip-text text-transparent`}>
-                  {stat.value.toLocaleString()}
+                <p className="text-xs font-medium text-slate-600 dark:text-slate-700 mb-1.5">{stat.title}</p>
+                <p className={`text-2xl font-bold bg-gradient-to-br ${stat.gradient} bg-clip-text text-transparent dark:bg-gradient-to-br ${stat.gradient} dark:bg-clip-text dark:text-transparent`}>
+                  {(() => {
+                    const val = stat.value;
+                    if (stat.id === 'today_registrations') {
+                      console.log(`[${stat.id}] Value:`, val, 'Type:', typeof val, 'IsNaN:', isNaN(val));
+                    }
+                    if (typeof val === 'string') {
+                      return val;
+                    }
+                    if (typeof val === 'number' && !isNaN(val)) {
+                      return val.toLocaleString('tr-TR');
+                    }
+                    return '0';
+                  })()}
                 </p>
               </div>
             </div>
@@ -164,16 +238,16 @@ export default function DashboardStats({ stats }: DashboardStatsProps) {
       {/* Modal */}
       {selectedCard && typeof window !== 'undefined' && createPortal(
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 overflow-hidden">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="flex justify-between items-center p-6 border-b border-slate-200">
-              <h2 className="text-xl font-bold text-slate-900">
+          <div className="bg-white dark:bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-slate-300">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-slate-900">
                 {statCards.find(c => c.id === selectedCard)?.title}
               </h2>
               <button
                 onClick={closeModal}
-                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-100 rounded-lg transition-colors"
               >
-                <X className="w-5 h-5 text-slate-600" />
+                <X className="w-5 h-5 text-slate-600 dark:text-slate-600" />
               </button>
             </div>
             
@@ -183,41 +257,41 @@ export default function DashboardStats({ stats }: DashboardStatsProps) {
                   <div className="w-8 h-8 border-4 border-indigo-200 rounded-full border-t-indigo-600 animate-spin"></div>
                 </div>
               ) : users.length === 0 ? (
-                <div className="text-center py-12 text-slate-500">
+                <div className="text-center py-12 text-slate-500 dark:text-slate-500">
                   Kullanıcı bulunamadı
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-slate-200">
-                    <thead className="bg-slate-50">
+                  <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-300">
+                    <thead className="bg-slate-50 dark:bg-slate-50">
                       <tr>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-700 uppercase tracking-wider">
                           ID
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-700 uppercase tracking-wider">
                           Ad Soyad
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-700 uppercase tracking-wider">
                           Telefon
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-700 uppercase tracking-wider">
                           Durum
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-700 uppercase tracking-wider">
                           Kayıt Tarihi
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-slate-200">
+                    <tbody className="bg-white dark:bg-white divide-y divide-slate-200 dark:divide-slate-300">
                       {users.map((user: any) => (
-                        <tr key={user.id} className="hover:bg-slate-50">
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-slate-900">
+                        <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-slate-50">
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-slate-900">
                             {user.id}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-600">
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-600 dark:text-slate-700">
                             {user.full_name}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-600">
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-600 dark:text-slate-700">
                             {user.phone}
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap text-sm">
@@ -233,7 +307,7 @@ export default function DashboardStats({ stats }: DashboardStatsProps) {
                                user.status}
                             </span>
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-600">
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-600 dark:text-slate-700">
                             {format(new Date(user.created_at), 'dd.MM.yyyy HH:mm')}
                           </td>
                         </tr>
@@ -250,8 +324,8 @@ export default function DashboardStats({ stats }: DashboardStatsProps) {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-white rounded-xl border border-slate-200 p-5">
-          <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+        <div className="bg-white dark:bg-white rounded-xl border border-slate-200 dark:border-slate-300 p-5">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-slate-900 mb-4 flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-indigo-600" />
             Haftalık Kayıtlar
           </h3>
@@ -296,25 +370,25 @@ export default function DashboardStats({ stats }: DashboardStatsProps) {
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="h-64 flex items-center justify-center text-slate-400 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
+            <div className="h-64 flex items-center justify-center text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-50 rounded-lg border-2 border-dashed border-slate-200 dark:border-slate-300">
               <div className="text-center">
-                <TrendingUp className="w-10 h-10 mx-auto mb-2 text-slate-300" />
-                <p className="text-sm font-medium">Veri bulunamadı</p>
+                <TrendingUp className="w-10 h-10 mx-auto mb-2 text-slate-300 dark:text-slate-400" />
+                <p className="text-sm font-medium dark:text-slate-600">Veri bulunamadı</p>
               </div>
             </div>
           )}
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200 p-5">
-          <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+        <div className="bg-white dark:bg-white rounded-xl border border-slate-200 dark:border-slate-300 p-5">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-slate-900 mb-4 flex items-center gap-2">
             <CheckCircle className="w-5 h-5 text-indigo-600" />
             Doğrulama İstatistikleri
           </h3>
           <div className="space-y-2">
             {stats.verificationStats?.map((stat: any, index: number) => (
-              <div key={index} className="flex justify-between items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                <span className="text-slate-700 font-medium text-sm">{stat.action}</span>
-                <span className="font-bold text-indigo-600 text-lg">{stat.count}</span>
+              <div key={index} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-50 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-100 transition-colors">
+                <span className="text-slate-700 dark:text-slate-700 font-medium text-sm">{stat.action}</span>
+                <span className="font-bold text-indigo-600 dark:text-indigo-600 text-lg">{stat.count}</span>
               </div>
             ))}
           </div>

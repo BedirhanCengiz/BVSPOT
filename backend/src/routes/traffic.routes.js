@@ -46,7 +46,14 @@ router.post('/log',
         countryCode,
         deviceType,
         browser,
-        os
+        os,
+        // 5651 Kanunu için ek alanlar
+        sourcePort,
+        destinationPort,
+        protocol,
+        connectionStartTime,
+        connectionEndTime,
+        dnsQuery
       } = req.body;
 
       // MAC adresini otomatik çek (middleware'den veya body'den)
@@ -68,7 +75,14 @@ router.post('/log',
         countryCode,
         deviceType,
         browser,
-        os
+        os,
+        // 5651 Kanunu için ek alanlar
+        sourcePort,
+        destinationPort,
+        protocol,
+        connectionStartTime,
+        connectionEndTime,
+        dnsQuery
       });
 
       res.json({ success: true, message: 'Web trafik logu kaydedildi' });

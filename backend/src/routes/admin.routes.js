@@ -20,15 +20,29 @@ router.get('/dashboard', async (req, res, next) => {
     const client = await pool.connect();
     try {
       // Günlük istatistikler
+      // Bugünkü kayıtları kontrol et (timezone sorunlarını önlemek için)
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date();
+      todayEnd.setHours(23, 59, 59, 999);
+      
+      // Test: Bugünkü kayıtları kontrol et
+      const testQuery = await client.query(`
+        SELECT COUNT(*) as count, MIN(created_at) as min_date, MAX(created_at) as max_date
+        FROM users
+        WHERE created_at >= $1::timestamp AND created_at <= $2::timestamp
+      `, [todayStart.toISOString(), todayEnd.toISOString()]);
+      console.log('Test Query Result:', testQuery.rows[0]);
+      
       const dailyStats = await client.query(`
         SELECT 
-          COUNT(*) FILTER (WHERE DATE(created_at) = CURRENT_DATE) as today_registrations,
-          COUNT(*) FILTER (WHERE status = 'active' AND connection_start_time::date = CURRENT_DATE) as today_active,
-          COUNT(*) FILTER (WHERE status = 'active') as total_active,
-          COUNT(*) FILTER (WHERE status = 'verified') as total_verified,
-          COUNT(*) FILTER (WHERE status = 'blocked') as total_blocked
+          COUNT(*) FILTER (WHERE created_at >= $1::timestamp AND created_at <= $2::timestamp)::INTEGER as today_registrations,
+          COUNT(*) FILTER (WHERE status = 'active' AND connection_start_time IS NOT NULL AND connection_start_time >= $1::timestamp AND connection_start_time <= $2::timestamp)::INTEGER as today_active,
+          COUNT(*) FILTER (WHERE status = 'active')::INTEGER as total_active,
+          COUNT(*) FILTER (WHERE status = 'verified')::INTEGER as total_verified,
+          COUNT(*) FILTER (WHERE status = 'blocked')::INTEGER as total_blocked
         FROM users
-      `);
+      `, [todayStart.toISOString(), todayEnd.toISOString()]);
 
       // Haftalık istatistikler
       const weeklyStats = await client.query(`
@@ -56,22 +70,29 @@ router.get('/dashboard', async (req, res, next) => {
       let onlineUsers;
       try {
         onlineUsers = await client.query(`
-          SELECT COUNT(DISTINCT user_id) as count
+          SELECT COALESCE(COUNT(DISTINCT user_id), 0)::INTEGER as count
           FROM sessions
           WHERE status = 'active' AND start_time > NOW() - INTERVAL '5 minutes'
         `);
       } catch (error) {
         // Fallback: Eğer start_time yoksa veya hata varsa alternatif sorgu
         console.warn('Online users sorgusu hatası, alternatif kullanılıyor:', error.message);
-        onlineUsers = await client.query(`
-          SELECT COUNT(DISTINCT s.user_id) as count
-          FROM sessions s
-          INNER JOIN users u ON s.user_id = u.id
-          WHERE s.status = 'active' AND (u.connection_start_time > NOW() - INTERVAL '5 minutes' OR s.start_time > NOW() - INTERVAL '5 minutes')
-        `).catch(() => {
+        try {
+          onlineUsers = await client.query(`
+            SELECT COALESCE(COUNT(DISTINCT s.user_id), 0)::INTEGER as count
+            FROM sessions s
+            INNER JOIN users u ON s.user_id = u.id
+            WHERE s.status = 'active' AND (
+              (u.connection_start_time IS NOT NULL AND u.connection_start_time > NOW() - INTERVAL '5 minutes') 
+              OR 
+              (s.start_time IS NOT NULL AND s.start_time > NOW() - INTERVAL '5 minutes')
+            )
+          `);
+        } catch (fallbackError) {
           // Son fallback: Sadece aktif session sayısı
-          return { rows: [{ count: 0 }] };
-        });
+          console.warn('Fallback sorgusu da başarısız, varsayılan değer kullanılıyor:', fallbackError.message);
+          onlineUsers = { rows: [{ count: 0 }] };
+        }
       }
 
       // Başarılı/başarısız doğrulama istatistikleri
@@ -91,12 +112,70 @@ router.get('/dashboard', async (req, res, next) => {
         verificationStats = { rows: [] };
       }
 
+      // Toplam kullanıcı sayısı
+      const totalUsers = await client.query(`
+        SELECT COALESCE(COUNT(*), 0)::INTEGER as count FROM users
+      `);
+
+      // Trafik istatistikleri (5651 Kanunu logları)
+      let trafficStats;
+      try {
+        trafficStats = await client.query(`
+          SELECT 
+            COUNT(*) as total_logs,
+            COALESCE(SUM(data_transferred_bytes), 0) as total_bytes,
+            COUNT(*) FILTER (WHERE DATE(created_at) = CURRENT_DATE) as today_logs,
+            COALESCE(SUM(data_transferred_bytes) FILTER (WHERE DATE(created_at) = CURRENT_DATE), 0) as today_bytes
+          FROM web_traffic_logs
+        `);
+      } catch (error) {
+        console.warn('Traffic stats sorgusu hatası:', error.message);
+        trafficStats = { rows: [{ total_logs: 0, total_bytes: 0, today_logs: 0, today_bytes: 0 }] };
+      }
+
+      const trafficData = trafficStats.rows[0] || {};
+      const totalTrafficGB = (parseInt(trafficData.total_bytes || 0) / (1024 * 1024 * 1024)).toFixed(2);
+      const todayTrafficMB = (parseInt(trafficData.today_bytes || 0) / (1024 * 1024)).toFixed(2);
+
+      // Daily stats'ı güvenli şekilde al
+      const dailyData = dailyStats.rows[0] || {};
+      
+      // Debug için log
+      console.log('=== DASHBOARD STATS DEBUG ===');
+      console.log('Today Start:', todayStart.toISOString());
+      console.log('Today End:', todayEnd.toISOString());
+      console.log('Daily Stats Raw:', dailyStats.rows[0]);
+      console.log('Daily Data:', dailyData);
+      console.log('Today Registrations Raw:', dailyData.today_registrations);
+      console.log('Today Registrations Type:', typeof dailyData.today_registrations);
+      
+      // Değerleri güvenli şekilde parse et
+      const todayRegistrations = dailyData.today_registrations !== null && dailyData.today_registrations !== undefined 
+        ? parseInt(dailyData.today_registrations) 
+        : 0;
+      
+      console.log('Parsed Today Registrations:', todayRegistrations);
+      console.log('===========================');
+
       res.json({
-        daily: dailyStats.rows[0] || {},
+        daily: {
+          today_registrations: todayRegistrations,
+          today_active: parseInt(dailyData.today_active) || 0,
+          total_active: parseInt(dailyData.total_active) || 0,
+          total_verified: parseInt(dailyData.total_verified) || 0,
+          total_blocked: parseInt(dailyData.total_blocked) || 0,
+          total_users: parseInt(totalUsers.rows[0]?.count) || 0
+        },
         weekly: weeklyStats.rows || [],
         monthly: monthlyStats.rows || [],
-        onlineUsers: onlineUsers?.rows?.[0]?.count || 0,
-        verificationStats: verificationStats.rows || []
+        onlineUsers: parseInt(onlineUsers?.rows?.[0]?.count || 0),
+        verificationStats: verificationStats.rows || [],
+        traffic: {
+          total_logs: parseInt(trafficData.total_logs || 0),
+          total_traffic_gb: parseFloat(totalTrafficGB || 0),
+          today_logs: parseInt(trafficData.today_logs || 0),
+          today_traffic_mb: parseFloat(todayTrafficMB || 0)
+        }
       });
     } finally {
       client.release();

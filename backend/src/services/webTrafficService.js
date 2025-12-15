@@ -27,6 +27,12 @@ import { maskTCKN, maskPhone } from '../utils/tcknValidator.js';
  * @param {string} trafficData.deviceType - Cihaz tipi (mobile, desktop, etc.)
  * @param {string} trafficData.browser - Tarayıcı bilgisi
  * @param {string} trafficData.os - İşletim sistemi
+ * @param {number} trafficData.sourcePort - Kaynak port numarası (5651 Kanunu)
+ * @param {number} trafficData.destinationPort - Hedef port numarası (5651 Kanunu)
+ * @param {string} trafficData.protocol - Protokol (HTTP, HTTPS, FTP, SSH, DNS, TCP, UDP) (5651 Kanunu)
+ * @param {Date} trafficData.connectionStartTime - Bağlantı başlangıç zamanı (5651 Kanunu)
+ * @param {Date} trafficData.connectionEndTime - Bağlantı bitiş zamanı (5651 Kanunu)
+ * @param {string} trafficData.dnsQuery - DNS sorgusu (5651 Kanunu)
  */
 export async function logWebTraffic(trafficData) {
   const client = await pool.connect();
@@ -48,7 +54,14 @@ export async function logWebTraffic(trafficData) {
       countryCode = null,
       deviceType = null,
       browser = null,
-      os = null
+      os = null,
+      // 5651 Kanunu için ek alanlar
+      sourcePort = null,
+      destinationPort = null,
+      protocol = null,
+      connectionStartTime = null,
+      connectionEndTime = null,
+      dnsQuery = null
     } = trafficData;
 
     // Domain'i URL'den çıkar (eğer verilmemişse)
@@ -60,6 +73,43 @@ export async function logWebTraffic(trafficData) {
       } catch (e) {
         // URL parse edilemezse domain olarak URL'in kendisini kullan
         extractedDomain = url.substring(0, 255);
+      }
+    }
+
+    // Protokolü URL'den otomatik tespit et (eğer verilmemişse)
+    let detectedProtocol = protocol;
+    if (!detectedProtocol && url) {
+      try {
+        const urlObj = new URL(url);
+        detectedProtocol = urlObj.protocol.replace(':', '').toUpperCase();
+        // HTTPS -> HTTPS, HTTP -> HTTP, ftp -> FTP vb.
+        if (detectedProtocol === 'HTTPS') detectedProtocol = 'HTTPS';
+        else if (detectedProtocol === 'HTTP') detectedProtocol = 'HTTP';
+        else if (detectedProtocol === 'FTP') detectedProtocol = 'FTP';
+        else detectedProtocol = 'HTTP'; // Varsayılan
+      } catch (e) {
+        detectedProtocol = 'HTTP'; // Varsayılan
+      }
+    } else if (!detectedProtocol) {
+      detectedProtocol = 'HTTP'; // Varsayılan
+    }
+
+    // Port numaralarını URL'den otomatik tespit et (eğer verilmemişse)
+    let detectedDestinationPort = destinationPort;
+    if (!detectedDestinationPort && url) {
+      try {
+        const urlObj = new URL(url);
+        if (urlObj.port) {
+          detectedDestinationPort = parseInt(urlObj.port);
+        } else {
+          // Varsayılan portlar
+          if (detectedProtocol === 'HTTPS') detectedDestinationPort = 443;
+          else if (detectedProtocol === 'HTTP') detectedDestinationPort = 80;
+          else if (detectedProtocol === 'FTP') detectedDestinationPort = 21;
+          else detectedDestinationPort = 80;
+        }
+      } catch (e) {
+        detectedDestinationPort = 80; // Varsayılan
       }
     }
 
@@ -101,13 +151,15 @@ export async function logWebTraffic(trafficData) {
       }
     }
 
-    // Log kaydı oluştur
+    // Log kaydı oluştur (5651 Kanunu uyumlu)
     await client.query(
       `INSERT INTO web_traffic_logs (
         user_id, session_id, ip_address, mac_address, url, domain, method, 
         status_code, user_agent, referer, data_transferred_bytes, 
-        response_time_ms, country_code, device_type, browser, os
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
+        response_time_ms, country_code, device_type, browser, os,
+        source_port, destination_port, protocol, connection_start_time, 
+        connection_end_time, dns_query
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)`,
       [
         resolvedUserId,
         resolvedSessionId,
@@ -124,7 +176,13 @@ export async function logWebTraffic(trafficData) {
         countryCode,
         deviceType,
         browser,
-        os
+        os,
+        sourcePort,
+        detectedDestinationPort,
+        detectedProtocol,
+        connectionStartTime,
+        connectionEndTime,
+        dnsQuery
       ]
     );
 

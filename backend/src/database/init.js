@@ -102,7 +102,7 @@ export async function initializeDatabase() {
       )
     `);
 
-    // Web Traffic Logs table - Kullanıcı web trafiği logları
+    // Web Traffic Logs table - Kullanıcı web trafiği logları (5651 Kanunu uyumlu)
     await client.query(`
       CREATE TABLE IF NOT EXISTS web_traffic_logs (
         id SERIAL PRIMARY KEY,
@@ -122,9 +122,32 @@ export async function initializeDatabase() {
         device_type VARCHAR(50),
         browser VARCHAR(100),
         os VARCHAR(100),
+        -- 5651 Kanunu için ek alanlar
+        source_port INTEGER,
+        destination_port INTEGER,
+        protocol VARCHAR(20) DEFAULT 'HTTP', -- HTTP, HTTPS, FTP, SSH, DNS, TCP, UDP vb.
+        connection_start_time TIMESTAMP,
+        connection_end_time TIMESTAMP,
+        dns_query VARCHAR(255), -- DNS sorguları için
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    
+    // 5651 Kanunu için eksik kolonları ekle (migration için)
+    try {
+      await client.query(`
+        ALTER TABLE web_traffic_logs 
+        ADD COLUMN IF NOT EXISTS source_port INTEGER,
+        ADD COLUMN IF NOT EXISTS destination_port INTEGER,
+        ADD COLUMN IF NOT EXISTS protocol VARCHAR(20) DEFAULT 'HTTP',
+        ADD COLUMN IF NOT EXISTS connection_start_time TIMESTAMP,
+        ADD COLUMN IF NOT EXISTS connection_end_time TIMESTAMP,
+        ADD COLUMN IF NOT EXISTS dns_query VARCHAR(255)
+      `);
+    } catch (error) {
+      // Kolonlar zaten varsa hata vermez, devam et
+      console.log('Migration: Kolonlar zaten mevcut veya eklenemedi:', error.message);
+    }
 
     // SSID Management table - SSID bazlı arkaplan yönetimi
     await client.query(`
