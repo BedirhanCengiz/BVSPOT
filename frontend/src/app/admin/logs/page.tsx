@@ -92,26 +92,26 @@ export default function AdminLogs() {
         />
 
         {/* Filters */}
-        <div className="bg-white rounded-xl border border-slate-200 p-4 mb-4 shadow-sm">
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 mb-4 shadow-sm">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <input
               type="text"
               placeholder={t('action', language)}
               value={filters.action}
               onChange={(e) => setFilters({ ...filters, action: e.target.value, page: 1 })}
-              className="px-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900 bg-white transition-all duration-300 input-focus-glow hover:border-primary-300 text-sm"
+              className="px-4 py-2 border-2 border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-700 transition-all duration-300 input-focus-glow hover:border-primary-300 text-sm"
             />
             <input
               type="date"
               value={filters.startDate}
               onChange={(e) => setFilters({ ...filters, startDate: e.target.value, page: 1 })}
-              className="px-5 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900 bg-white transition-all duration-300 input-focus-glow hover:border-primary-300"
+              className="px-5 py-3 border-2 border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-700 transition-all duration-300 input-focus-glow hover:border-primary-300"
             />
             <input
               type="date"
               value={filters.endDate}
               onChange={(e) => setFilters({ ...filters, endDate: e.target.value, page: 1 })}
-              className="px-5 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900 bg-white transition-all duration-300 input-focus-glow hover:border-primary-300"
+              className="px-5 py-3 border-2 border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-700 transition-all duration-300 input-focus-glow hover:border-primary-300"
             />
             <button
               onClick={loadLogs}
@@ -125,51 +125,51 @@ export default function AdminLogs() {
         {loading ? (
           <LoadingSpinner />
         ) : (
-          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
+                <thead className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-slate-700 dark:to-slate-700">
                   <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-slate-300 uppercase">
                       {t('date', language)}
                     </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-slate-300 uppercase">
                       {t('action', language)}
                     </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-slate-300 uppercase">
                       {t('user', language)}
                     </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-slate-300 uppercase">
                       {t('ipAddress', language)}
                     </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-slate-300 uppercase">
                       {t('details', language)}
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
                   {logs.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                      <td colSpan={5} className="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
                         {t('noLogsFound', language)}
                       </td>
                     </tr>
                   ) : (
                     logs.map((log) => (
-                    <tr key={log.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                    <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-slate-100">
                         {format(new Date(log.created_at), 'dd MMM yyyy HH:mm')}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-slate-100">
                         {log.action}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-slate-100">
                         {log.full_name || '-'}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-slate-100">
                         {log.ip_address || '-'}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-900">
+                      <td className="px-4 py-3 text-sm text-gray-900 dark:text-slate-100">
                         {log.details ? JSON.stringify(log.details).substring(0, 50) + '...' : '-'}
                       </td>
                     </tr>
@@ -181,8 +181,8 @@ export default function AdminLogs() {
             
             {/* Pagination */}
             {pagination.totalPages > 1 && (
-              <div className="bg-slate-50 px-6 py-4 flex items-center justify-between border-t border-slate-200">
-                <div className="text-sm text-slate-700">
+              <div className="bg-slate-50 dark:bg-slate-700/50 px-6 py-4 flex items-center justify-between border-t border-slate-200 dark:border-slate-700">
+                <div className="text-sm text-slate-700 dark:text-slate-300">
                   {t('totalRecords', language)
                     .replace('{total}', pagination.total?.toString() || '0')
                     .replace('{page}', pagination.page?.toString() || '1')
@@ -192,14 +192,14 @@ export default function AdminLogs() {
                   <button
                     onClick={() => setFilters({ ...filters, page: (pagination.page || 1) - 1 })}
                     disabled={pagination.page === 1}
-                    className="px-4 py-2 border border-slate-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-100 text-sm text-slate-700 bg-white"
+                    className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-600 text-sm text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800"
                   >
                     {t('previous', language)}
                   </button>
                   <button
                     onClick={() => setFilters({ ...filters, page: (pagination.page || 1) + 1 })}
                     disabled={pagination.page === pagination.totalPages}
-                    className="px-4 py-2 border border-slate-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-100 text-sm text-slate-700 bg-white"
+                    className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-600 text-sm text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800"
                   >
                     {t('next', language)}
                   </button>

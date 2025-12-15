@@ -35,3 +35,19 @@ export const registerRateLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Admin route'ları için özel rate limiter (daha yüksek limit)
+export const adminRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 dakika
+  max: parseInt(process.env.ADMIN_RATE_LIMIT_MAX_REQUESTS) || 1000, // 15 dakikada 1000 istek (admin panel için)
+  message: {
+    error: 'Çok fazla istek gönderildi. Lütfen daha sonra tekrar deneyin.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => {
+    // Admin token varsa rate limiting'i atla (güvenlik için admin token kontrolü yapılmalı)
+    // Ama şimdilik sadece limiti artırdık
+    return false;
+  }
+});
+

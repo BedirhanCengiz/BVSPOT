@@ -14,7 +14,7 @@ import adminRoutes from './routes/admin.routes.js';
 import trafficRoutes from './routes/traffic.routes.js';
 import ssidRoutes from './routes/ssid.routes.js';
 import { errorHandler } from './middleware/errorHandler.js';
-import { rateLimiter } from './middleware/rateLimiter.js';
+import { rateLimiter, adminRateLimiter } from './middleware/rateLimiter.js';
 import { macAddressMiddleware } from './middleware/macAddress.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -59,7 +59,9 @@ app.use('/api/uploads/ssids', (req, res, next) => {
   next();
 }, express.static(path.join(__dirname, '../uploads/ssids')));
 
-// Rate limiting
+// Rate limiting - Admin route'ları için özel rate limiter
+app.use('/api/admin', adminRateLimiter);
+// Diğer route'lar için normal rate limiter
 app.use('/api/', rateLimiter);
 
 // Health check

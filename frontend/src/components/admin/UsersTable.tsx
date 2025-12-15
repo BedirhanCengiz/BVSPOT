@@ -149,55 +149,55 @@ export default function UsersTable({
   };
 
     return (
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-slate-50">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
+          <thead className="bg-slate-50 dark:bg-slate-700/50">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
                 {t('fullName', language)}
               </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
                 {t('phone', language)}
               </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
                 {t('idType', language)}
               </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
                 {t('idNumber', language)}
               </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
                 {t('statusLabel', language)}
               </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
                 {t('quotaLabel', language)}
               </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
                 {t('registrationDate', language)}
               </th>
-              <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">
+              <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
                 {t('edit', language)}
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
             {users.map((user) => (
-              <tr key={user.id} className="hover:bg-gray-50">
+              <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50">
                 <td className="px-4 py-3 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">{user.full_name}</div>
+                  <div className="text-sm font-medium text-gray-900 dark:text-slate-100">{user.full_name}</div>
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{user.phone}</div>
+                  <div className="text-sm text-gray-900 dark:text-slate-100">{user.phone}</div>
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
+                  <div className="text-sm text-gray-900 dark:text-slate-100">
                     {user.id_type === 'tckn' && t('tckn', language)}
                     {user.id_type === 'passport' && t('passport', language)}
                     {user.id_type === 'foreign_id' && t('foreignId', language)}
                   </div>
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
+                  <div className="text-sm text-gray-900 dark:text-slate-100">
                     {user.tckn || user.passport_no || user.foreign_id_no || '-'}
                   </div>
                 </td>
@@ -205,12 +205,12 @@ export default function UsersTable({
                   {getStatusBadge(user.status)}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
+                  <div className="text-sm text-gray-900 dark:text-slate-100">
                     {user.quota_used_mb || 0} / {user.quota_mb || 0} MB
                   </div>
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
+                  <div className="text-sm text-gray-900 dark:text-slate-100">
                     {format(new Date(user.created_at), 'dd MMM yyyy')}
                   </div>
                 </td>
@@ -275,22 +275,22 @@ export default function UsersTable({
 
       {/* Pagination */}
       {pagination.totalPages > 1 && (
-        <div className="bg-slate-50 px-6 py-4 flex items-center justify-between border-t border-slate-200">
-          <div className="text-sm text-slate-700">
+        <div className="bg-slate-50 dark:bg-slate-700/50 px-6 py-4 flex items-center justify-between border-t border-slate-200 dark:border-slate-700">
+          <div className="text-sm text-slate-700 dark:text-slate-300">
             {t('totalRecords', language).replace('{total}', pagination.total.toString()).replace('{page}', pagination.page.toString()).replace('{totalPages}', pagination.totalPages.toString())}
           </div>
           <div className="flex gap-2">
             <button
               onClick={() => onPageChange(pagination.page - 1)}
               disabled={pagination.page === 1}
-              className="px-4 py-2 border border-slate-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-100 text-sm text-slate-700 bg-white"
+              className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-600 text-sm text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800"
             >
               {t('previous', language)}
             </button>
             <button
               onClick={() => onPageChange(pagination.page + 1)}
               disabled={pagination.page === pagination.totalPages}
-              className="px-4 py-2 border border-slate-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-100 text-sm text-slate-700 bg-white"
+              className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-600 text-sm text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800"
             >
               {t('next', language)}
             </button>
@@ -300,27 +300,27 @@ export default function UsersTable({
 
       {/* Edit Modal */}
       {editingUser && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 overflow-hidden">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-              <div className="flex justify-between items-center p-6 border-b border-slate-200">
-                <h2 className="text-xl font-bold text-slate-900">{t('editUser', language)}</h2>
+          <div className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 overflow-hidden">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+              <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-slate-700">
+                <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">{t('editUser', language)}</h2>
               <button
                 onClick={() => setEditingUser(null)}
-                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
               >
-                <X className="w-6 h-6 text-gray-600" />
+                <X className="w-6 h-6 text-gray-600 dark:text-slate-400" />
               </button>
             </div>
             
             <form onSubmit={handleSubmit(handleEditSubmit)} className="flex-1 overflow-y-auto p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                   {t('fullName', language)}
                 </label>
                 <input
                   type="text"
                   {...register('fullName', { required: t('fullNameRequired', language) })}
-                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 bg-white transition-all duration-200 text-sm"
+                  className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-700 transition-all duration-200 text-sm"
                 />
                 {errors.fullName && (
                   <p className="mt-1 text-sm text-red-600">{errors.fullName.message}</p>
@@ -328,7 +328,7 @@ export default function UsersTable({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                   {t('phone', language)}
                 </label>
                 <input
@@ -340,16 +340,16 @@ export default function UsersTable({
                       message: t('phoneInvalid', language)
                     }
                   })}
-                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 bg-white transition-all duration-200 text-sm"
+                  className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-700 transition-all duration-200 text-sm"
                 />
                 {errors.phone && (
-                  <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.phone.message}</p>
                 )}
               </div>
 
               {/* Şifre Değiştirme */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                   {t('changePassword', language)}
                 </label>
                 <input
@@ -360,18 +360,18 @@ export default function UsersTable({
                       message: t('passwordMinLength', language)
                     }
                   })}
-                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 bg-white transition-all duration-200 text-sm"
+                  className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-700 transition-all duration-200 text-sm"
                   placeholder={t('changePasswordOptional', language)}
                 />
                 {errors.password && (
-                  <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.password.message}</p>
                 )}
               </div>
 
               {/* Şifre Tekrar */}
               {password && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                     {t('confirmPasswordLabel', language)} <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -385,11 +385,11 @@ export default function UsersTable({
                         return true;
                       }
                     })}
-                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 bg-white transition-all duration-200 text-sm"
+                    className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-700 transition-all duration-200 text-sm"
                     placeholder={t('confirmPasswordLabel', language)}
                   />
                   {errors.confirmPassword && (
-                    <p className="mt-1 text-sm text-red-600">{errors.confirmPassword.message}</p>
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.confirmPassword.message}</p>
                   )}
                 </div>
               )}
@@ -397,7 +397,7 @@ export default function UsersTable({
               {/* Pasaport No */}
               {editingUser?.id_type === 'passport' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                     {t('passportNoLabel', language)}
                   </label>
                   <input
@@ -408,11 +408,11 @@ export default function UsersTable({
                         message: t('passportMinLength', language)
                       }
                     })}
-                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 bg-white transition-all duration-200 text-sm"
+                    className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-700 transition-all duration-200 text-sm"
                     placeholder={t('passportPlaceholder', language)}
                   />
                   {errors.passportNo && (
-                    <p className="mt-1 text-sm text-red-600">{errors.passportNo.message}</p>
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.passportNo.message}</p>
                   )}
                 </div>
               )}
@@ -420,7 +420,7 @@ export default function UsersTable({
               {/* Yabancı Kimlik No */}
               {editingUser?.id_type === 'foreign_id' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                     {t('foreignIdNoLabel', language)}
                   </label>
                   <input
@@ -431,22 +431,22 @@ export default function UsersTable({
                         message: t('foreignIdMinLength', language)
                       }
                     })}
-                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 bg-white transition-all duration-200 text-sm"
+                    className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-700 transition-all duration-200 text-sm"
                     placeholder={t('foreignIdPlaceholder', language)}
                   />
                   {errors.foreignIdNo && (
-                    <p className="mt-1 text-sm text-red-600">{errors.foreignIdNo.message}</p>
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.foreignIdNo.message}</p>
                   )}
                 </div>
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                   {t('statusLabel', language)}
                 </label>
                 <select
                   {...register('status', { required: t('statusRequired', language) })}
-                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 bg-white transition-all duration-200 text-sm"
+                  className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-700 transition-all duration-200 text-sm"
                 >
                   <option value="pending">{t('statusPending', language)}</option>
                   <option value="verified">{t('statusVerified', language)}</option>
@@ -455,13 +455,13 @@ export default function UsersTable({
                   <option value="awaiting_admin_approval">{t('statusAwaitingApproval', language)}</option>
                 </select>
                 {errors.status && (
-                  <p className="mt-1 text-sm text-red-600">{errors.status.message}</p>
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.status.message}</p>
                 )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                     {t('quotaLabel', language)}
                   </label>
                   <input
@@ -470,15 +470,15 @@ export default function UsersTable({
                       required: t('quotaRequired', language),
                       min: { value: 0, message: t('quotaMin', language) }
                     })}
-                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 bg-white transition-all duration-200 text-sm"
+                    className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-700 transition-all duration-200 text-sm"
                   />
                   {errors.quotaMb && (
-                    <p className="mt-1 text-sm text-red-600">{errors.quotaMb.message}</p>
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.quotaMb.message}</p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                     {t('speedLimitLabel', language)}
                   </label>
                   <input
@@ -487,10 +487,10 @@ export default function UsersTable({
                       required: t('speedLimitRequired', language),
                       min: { value: 1, message: t('speedLimitMin', language) }
                     })}
-                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 bg-white transition-all duration-200 text-sm"
+                    className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-700 transition-all duration-200 text-sm"
                   />
                   {errors.speedLimitMbps && (
-                    <p className="mt-1 text-sm text-red-600">{errors.speedLimitMbps.message}</p>
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.speedLimitMbps.message}</p>
                   )}
                 </div>
               </div>
@@ -523,7 +523,7 @@ export default function UsersTable({
                 <button
                   type="button"
                   onClick={() => setEditingUser(null)}
-                  className="flex-1 border border-slate-300 text-slate-700 py-2.5 rounded-lg font-medium hover:bg-slate-50 transition-all duration-200 text-sm"
+                  className="flex-1 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 py-2.5 rounded-lg font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-all duration-200 text-sm"
                 >
                   {t('cancel', language)}
                 </button>

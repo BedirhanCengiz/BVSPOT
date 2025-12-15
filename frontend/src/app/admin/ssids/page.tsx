@@ -195,10 +195,10 @@ export default function AdminSSIDs() {
 
         {/* Form Modal */}
         {showForm && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 overflow-hidden">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="flex justify-between items-center p-6 border-b border-slate-200">
-                <h2 className="text-xl font-bold text-slate-900">
+          <div className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 overflow-hidden">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-slate-700">
+                <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
                   {editingSSID ? t('editSSID', language) : t('newSSID', language)}
                 </h2>
                 <button
@@ -206,15 +206,15 @@ export default function AdminSSIDs() {
                     setShowForm(false);
                     setEditingSSID(null);
                   }}
-                  className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                  className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
                 >
-                  <X className="w-5 h-5 text-slate-600" />
+                  <X className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                 </button>
               </div>
               
               <form onSubmit={handleSubmit} className="p-6 space-y-4">
                 <div className="animate-slide-up">
-                  <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1">
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2 flex items-center gap-1">
                     {t('ssidName', language)} <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -222,13 +222,13 @@ export default function AdminSSIDs() {
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 bg-white transition-all duration-200 text-sm"
+                    className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-700 transition-all duration-200 text-sm"
                     placeholder={t('ssidNamePlaceholder', language)}
                   />
                 </div>
 
                 <div className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1">
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2 flex items-center gap-1">
                     {t('ssidNetworkName', language)} <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -236,19 +236,19 @@ export default function AdminSSIDs() {
                     required
                     value={formData.ssid}
                     onChange={(e) => setFormData({ ...formData, ssid: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 bg-white transition-all duration-200 text-sm"
+                    className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-700 transition-all duration-200 text-sm"
                     placeholder={t('ssidPlaceholder', language)}
                   />
                 </div>
 
                 <div className="animate-slide-up" style={{ animationDelay: '0.2s' }}>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">
                     {t('description', language)}
                   </label>
                   <textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 bg-white transition-all duration-200 text-sm"
+                    className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-700 transition-all duration-200 text-sm"
                     rows={3}
                     placeholder={t('descriptionPlaceholder', language)}
                   />
@@ -262,7 +262,7 @@ export default function AdminSSIDs() {
                     onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
                     className="w-4 h-4 text-primary-600 rounded"
                   />
-                  <label htmlFor="is_active" className="ml-2 text-sm text-gray-700">
+                  <label htmlFor="is_active" className="ml-2 text-sm text-gray-700 dark:text-slate-300">
                     {t('active', language)}
                   </label>
                 </div>
@@ -285,7 +285,7 @@ export default function AdminSSIDs() {
                       setShowForm(false);
                       setEditingSSID(null);
                     }}
-                    className="flex-1 px-4 py-2.5 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-all duration-200 text-sm"
+                    className="flex-1 px-4 py-2.5 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-all duration-200 text-sm"
                   >
                     {t('cancel', language)}
                   </button>
@@ -304,7 +304,7 @@ export default function AdminSSIDs() {
               return (
                 <div
                   key={ssid.id}
-                  className="bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-lg hover:border-indigo-300 transition-all duration-200"
+                  className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden hover:shadow-lg hover:border-indigo-300 dark:hover:border-indigo-600 transition-all duration-200"
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
                   {/* Arkaplan Önizleme */}
@@ -328,17 +328,17 @@ export default function AdminSSIDs() {
                   </div>
 
                   {/* SSID Bilgileri */}
-                  <div className="p-5 bg-white/50">
+                  <div className="p-5 bg-white/50 dark:bg-slate-800/50">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
-                        <h3 className="font-extrabold text-gray-900 text-lg mb-1">{ssid.name}</h3>
-                        <p className="text-sm text-gray-600 font-medium">{ssid.ssid}</p>
+                        <h3 className="font-extrabold text-gray-900 dark:text-slate-100 text-lg mb-1">{ssid.name}</h3>
+                        <p className="text-sm text-gray-600 dark:text-slate-400 font-medium">{ssid.ssid}</p>
                       </div>
                       <span
                         className={`px-3 py-1 text-xs font-bold rounded-full shadow-md ${
                           ssid.is_active
                             ? 'bg-gradient-to-r from-green-400 to-emerald-500 text-white'
-                            : 'bg-gradient-to-r from-gray-300 to-gray-400 text-gray-800'
+                            : 'bg-gradient-to-r from-gray-300 to-gray-400 dark:from-slate-600 dark:to-slate-700 text-gray-800 dark:text-slate-300'
                         }`}
                       >
                         {ssid.is_active ? t('active', language) : t('inactive', language)}
@@ -346,7 +346,7 @@ export default function AdminSSIDs() {
                     </div>
 
                     {ssid.description && (
-                      <p className="text-sm text-gray-500 mb-4">{ssid.description}</p>
+                      <p className="text-sm text-gray-500 dark:text-slate-400 mb-4">{ssid.description}</p>
                     )}
 
                     {/* Arkaplan Yükleme */}
@@ -400,11 +400,11 @@ export default function AdminSSIDs() {
         )}
 
         {!loading && ssids.length === 0 && (
-          <div className="text-center py-12 glass-strong rounded-2xl shadow-xl animate-slide-up mt-2">
-            <div className="bg-gradient-to-br from-gray-200 to-gray-300 p-6 rounded-full w-24 h-24 mx-auto mb-4 flex items-center justify-center">
-              <Wifi className="w-12 h-12 text-gray-500" />
+          <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xl animate-slide-up mt-2">
+            <div className="bg-gradient-to-br from-gray-200 to-gray-300 dark:from-slate-700 dark:to-slate-600 p-6 rounded-full w-24 h-24 mx-auto mb-4 flex items-center justify-center">
+              <Wifi className="w-12 h-12 text-gray-500 dark:text-slate-400" />
             </div>
-            <p className="text-gray-600 text-lg font-semibold mb-2">Henüz SSID eklenmemiş</p>
+            <p className="text-gray-600 dark:text-slate-400 text-lg font-semibold mb-2">Henüz SSID eklenmemiş</p>
             <button
               onClick={() => setShowForm(true)}
               className="mt-4 px-6 py-3 bg-gradient-to-r from-primary-600 to-purple-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 btn-glow group"

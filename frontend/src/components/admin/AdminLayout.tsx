@@ -46,9 +46,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   ];
 
   return (
-    <div className="admin-panel min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50 flex" style={{ caretColor: '#111827' }}>
+    <div className="admin-panel min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex" style={{ caretColor: '#111827' }}>
       {/* Mobile Header */}
-      <div className="lg:hidden bg-white/80 backdrop-blur-xl border-b border-slate-200/50 shadow-sm p-4 flex items-center justify-between sticky top-0 z-50">
+      <div className="lg:hidden bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-700/50 shadow-sm p-4 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center gap-2">
           <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 p-1.5 rounded-lg shadow-lg">
             <Sparkles className="w-5 h-5 text-white" />
@@ -69,11 +69,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       <aside
         className={`${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } lg:translate-x-0 fixed lg:static inset-y-0 left-0 z-20 w-56 bg-white/90 backdrop-blur-xl border-r border-slate-200/50 shadow-xl transition-transform duration-300 ease-in-out flex-shrink-0`}
+        } lg:translate-x-0 fixed lg:static inset-y-0 left-0 z-20 w-56 bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl border-r border-slate-200/50 dark:border-slate-700/50 shadow-xl transition-transform duration-300 ease-in-out flex-shrink-0`}
       >
         <div className="h-full flex flex-col">
           {/* Logo Section */}
-          <div className="p-4 border-b border-slate-200/50">
+          <div className="p-4 border-b border-slate-200/50 dark:border-slate-700/50">
             <div className="flex items-center gap-2 mb-1">
               <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 p-2 rounded-lg shadow-lg">
                 <Sparkles className="w-5 h-5 text-white" />
@@ -82,7 +82,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 <h2 className="text-lg font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
                   BVSPOT
                 </h2>
-                <p className="text-xs text-slate-500 font-medium">{t('adminPanel', language)}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{t('adminPanel', language)}</p>
               </div>
             </div>
           </div>
@@ -100,11 +100,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   className={`group flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all duration-200 ${
                     isActive
                       ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/30'
-                      : 'text-slate-700 hover:bg-slate-100/80 hover:text-indigo-600'
+                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100/80 dark:hover:bg-slate-700/80 hover:text-indigo-600 dark:hover:text-indigo-400'
                   }`}
                 >
-                  <Icon className={`w-4 h-4 transition-transform flex-shrink-0 ${isActive ? 'text-white' : 'text-slate-500 group-hover:text-indigo-600'}`} />
-                  <span className={`font-medium text-xs ${isActive ? 'text-white' : 'text-slate-700 group-hover:text-indigo-600'}`}>
+                  <Icon className={`w-4 h-4 transition-transform flex-shrink-0 ${isActive ? 'text-white' : 'text-slate-500 dark:text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400'}`} />
+                  <span className={`font-medium text-xs ${isActive ? 'text-white' : 'text-slate-700 dark:text-slate-300 group-hover:text-indigo-600 dark:group-hover:text-indigo-400'}`}>
                     {t(item.labelKey, language)}
                   </span>
                   {isActive && (
@@ -116,10 +116,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           </nav>
 
           {/* Logout Button */}
-          <div className="p-3 border-t border-slate-200/50">
+          <div className="p-3 border-t border-slate-200/50 dark:border-slate-700/50">
             <button
               onClick={handleLogout}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-red-600 hover:bg-red-50 transition-all duration-200 font-medium text-xs group"
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 font-medium text-xs group"
             >
               <LogOut className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
               {t('logout', language)}
@@ -131,7 +131,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       {/* Overlay for mobile */}
       {sidebarOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black/20 backdrop-blur-sm z-40 transition-opacity"
+          className="lg:hidden fixed inset-0 bg-black/20 dark:bg-black/40 backdrop-blur-sm z-40 transition-opacity"
           onClick={() => setSidebarOpen(false)}
         />
       )}

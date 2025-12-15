@@ -72,6 +72,17 @@ api.interceptors.response.use(
         // Burada sadece token'ı temizliyoruz
       }
     }
+    
+    // Rate limiting hatası (429)
+    if (error.response?.status === 429) {
+      const retryAfter = error.response.headers['retry-after'];
+      const message = error.response?.data?.error || 'Çok fazla istek gönderildi. Lütfen birkaç saniye bekleyip tekrar deneyin.';
+      error.rateLimitError = true;
+      error.retryAfter = retryAfter ? parseInt(retryAfter) : 60; // Varsayılan 60 saniye
+      error.rateLimitMessage = message;
+      console.warn('Rate limit exceeded:', message, 'Retry after:', retryAfter || '60 seconds');
+    }
+    
     return Promise.reject(error);
   }
 );
@@ -118,6 +129,14 @@ export const adminAPI = {
   // Web Traffic API
   getWebTrafficLogs: (params?: any) => api.get('/traffic/logs', { params }),
   getWebTrafficStats: (params?: any) => api.get('/traffic/stats', { params }),
+  // Settings API
+  getSettings: () => api.get('/admin/settings'),
+  updateSettings: (data: any) => api.put('/admin/settings', data),
+  // Admin Users API
+  getAdmins: () => api.get('/admin/admins'),
+  createAdmin: (data: any) => api.post('/admin/admins', data),
+  changeAdminPassword: (id: number, password: string) => api.put(`/admin/admins/${id}/password`, { password }),
+  deleteAdmin: (id: number) => api.delete(`/admin/admins/${id}`),
   // SSID API
   getSSIDs: () => api.get('/ssids'),
   getSSID: (ssid: string) => api.get(`/ssids/${ssid}`),

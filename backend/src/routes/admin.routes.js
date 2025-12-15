@@ -681,5 +681,248 @@ router.post('/mac-list',
   }
 );
 
+/**
+ * GET /api/admin/settings
+ * Tüm ayarları getir
+ */
+router.get('/settings', async (req, res, next) => {
+  try {
+    const client = await pool.connect();
+    try {
+      const result = await client.query('SELECT * FROM settings ORDER BY key');
+      const settings = {};
+      result.rows.forEach(row => {
+        settings[row.key] = {
+          value: row.value,
+          description: row.description,
+          updatedAt: row.updated_at
+        };
+      });
+      res.json({ settings });
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * PUT /api/admin/settings
+ * Ayarları güncelle
+ */
+router.put('/settings',
+  [
+    body('inactive_timeout_hours').optional().isInt({ min: 1, max: 168 }).withMessage('Inactive timeout 1-168 saat arasında olmalıdır'),
+    body('max_session_hours').optional().isInt({ min: 1, max: 720 }).withMessage('Max session 1-720 saat arasında olmalıdır'),
+    body('theme').optional().isIn(['light', 'dark']).withMessage('Tema light veya dark olmalıdır')
+  ],
+  async (req, res, next) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const client = await pool.connect();
+      try {
+        const updates = Object.keys(req.body);
+        
+        for (const key of updates) {
+          await client.query(
+            `INSERT INTO settings (key, value, updated_by) 
+             VALUES ($1, $2, $3)
+             ON CONFLICT (key) 
+             DO UPDATE SET value = $2, updated_by = $3, updated_at = NOW()`,
+            [key, req.body[key].toString(), req.admin.id]
+          );
+        }
+
+        await createLog(null, 'settings_updated', req, { 
+          adminId: req.admin.id, 
+          updates: req.body 
+        });
+
+        res.json({ success: true, message: 'Ayarlar güncellendi' });
+      } finally {
+        client.release();
+      }
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * GET /api/admin/admins
+ * Admin kullanıcılarını listele
+ */
+router.get('/admins', async (req, res, next) => {
+  try {
+    const client = await pool.connect();
+    try {
+      const result = await client.query(
+        'SELECT id, email, role, last_login, created_at FROM admin_users ORDER BY created_at DESC'
+      );
+      res.json({ admins: result.rows });
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/admin/admins
+ * Yeni admin kullanıcısı oluştur
+ */
+router.post('/admins',
+  [
+    body('email').isEmail().withMessage('Geçerli bir e-posta adresi giriniz'),
+    body('password').isLength({ min: 6 }).withMessage('Şifre en az 6 karakter olmalıdır'),
+    body('role').optional().isIn(['admin', 'super_admin']).withMessage('Geçerli bir rol seçiniz')
+  ],
+  async (req, res, next) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const { email, password, role = 'admin' } = req.body;
+      const client = await pool.connect();
+      try {
+        // Email kontrolü
+        const existing = await client.query('SELECT id FROM admin_users WHERE email = $1', [email]);
+        if (existing.rows.length > 0) {
+          return res.status(400).json({ error: 'Bu e-posta adresi zaten kullanılıyor' });
+        }
+
+        // Şifreyi hash'le
+        const passwordHash = await bcrypt.hash(password, 10);
+
+        // Admin kullanıcısı oluştur
+        const result = await client.query(
+          'INSERT INTO admin_users (email, password_hash, role) VALUES ($1, $2, $3) RETURNING id, email, role, created_at',
+          [email, passwordHash, role]
+        );
+
+        await createLog(null, 'admin_created', req, { 
+          adminId: req.admin.id, 
+          newAdminEmail: email,
+          newAdminRole: role
+        });
+
+        res.status(201).json({ 
+          success: true, 
+          message: 'Admin kullanıcısı oluşturuldu',
+          admin: result.rows[0]
+        });
+      } finally {
+        client.release();
+      }
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * PUT /api/admin/admins/:id/password
+ * Admin şifresini değiştir
+ */
+router.put('/admins/:id/password',
+  [
+    body('password').isLength({ min: 6 }).withMessage('Şifre en az 6 karakter olmalıdır')
+  ],
+  async (req, res, next) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const { password } = req.body;
+      const adminId = parseInt(req.params.id);
+      const client = await pool.connect();
+      try {
+        // Admin kontrolü
+        const admin = await client.query('SELECT id FROM admin_users WHERE id = $1', [adminId]);
+        if (admin.rows.length === 0) {
+          return res.status(404).json({ error: 'Admin kullanıcısı bulunamadı' });
+        }
+
+        // Sadece kendi şifresini değiştirebilir veya super_admin olmalı
+        if (req.admin.id !== adminId && req.admin.role !== 'super_admin') {
+          return res.status(403).json({ error: 'Bu işlem için yetkiniz yok' });
+        }
+
+        // Şifreyi hash'le
+        const passwordHash = await bcrypt.hash(password, 10);
+
+        // Şifreyi güncelle
+        await client.query(
+          'UPDATE admin_users SET password_hash = $1 WHERE id = $2',
+          [passwordHash, adminId]
+        );
+
+        await createLog(null, 'admin_password_changed', req, { 
+          adminId: req.admin.id, 
+          targetAdminId: adminId
+        });
+
+        res.json({ success: true, message: 'Şifre değiştirildi' });
+      } finally {
+        client.release();
+      }
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * DELETE /api/admin/admins/:id
+ * Admin kullanıcısını sil
+ */
+router.delete('/admins/:id', async (req, res, next) => {
+  try {
+    const adminId = parseInt(req.params.id);
+    const client = await pool.connect();
+    try {
+      // Super admin kontrolü
+      if (req.admin.role !== 'super_admin') {
+        return res.status(403).json({ error: 'Bu işlem için super_admin yetkisi gereklidir' });
+      }
+
+      // Kendini silemez
+      if (req.admin.id === adminId) {
+        return res.status(400).json({ error: 'Kendi hesabınızı silemezsiniz' });
+      }
+
+      // Admin kontrolü
+      const admin = await client.query('SELECT id, email FROM admin_users WHERE id = $1', [adminId]);
+      if (admin.rows.length === 0) {
+        return res.status(404).json({ error: 'Admin kullanıcısı bulunamadı' });
+      }
+
+      // Admin'i sil
+      await client.query('DELETE FROM admin_users WHERE id = $1', [adminId]);
+
+      await createLog(null, 'admin_deleted', req, { 
+        adminId: req.admin.id, 
+        deletedAdminEmail: admin.rows[0].email
+      });
+
+      res.json({ success: true, message: 'Admin kullanıcısı silindi' });
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;
 

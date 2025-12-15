@@ -141,6 +141,18 @@ export async function initializeDatabase() {
       )
     `);
 
+    // Settings table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS settings (
+        id SERIAL PRIMARY KEY,
+        key VARCHAR(100) NOT NULL UNIQUE,
+        value TEXT,
+        description TEXT,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_by INTEGER REFERENCES admin_users(id)
+      )
+    `);
+
     // Indexes
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone);
@@ -159,7 +171,24 @@ export async function initializeDatabase() {
       CREATE INDEX IF NOT EXISTS idx_web_traffic_created ON web_traffic_logs(created_at);
       CREATE INDEX IF NOT EXISTS idx_ssids_ssid ON ssids(ssid);
       CREATE INDEX IF NOT EXISTS idx_ssids_active ON ssids(is_active);
+      CREATE INDEX IF NOT EXISTS idx_settings_key ON settings(key);
     `);
+
+    // Default settings
+    const defaultSettings = [
+      { key: 'inactive_timeout_hours', value: '24', description: 'Kullanıcı kaç saat trafik yapmazsa ağdan atılsın (saat)' },
+      { key: 'max_session_hours', value: '72', description: 'Maksimum oturum süresi - trafiğe bakılmaksızın kaç saat sonra ağdan atılsın (saat)' },
+      { key: 'theme', value: 'light', description: 'Tema (light/dark)' }
+    ];
+
+    for (const setting of defaultSettings) {
+      await client.query(
+        `INSERT INTO settings (key, value, description) 
+         VALUES ($1, $2, $3) 
+         ON CONFLICT (key) DO NOTHING`,
+        [setting.key, setting.value, setting.description]
+      );
+    }
 
     // Create default admin user if not exists
     const adminCheck = await client.query('SELECT id FROM admin_users WHERE email = $1', [
