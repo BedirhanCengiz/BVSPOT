@@ -693,6 +693,295 @@ router.get('/logs/export', async (req, res, next) => {
 });
 
 /**
+ * GET /api/admin/immutable-logs
+ * 5651 Kanunu uyumlu immutable erişim logları
+ */
+router.get('/immutable-logs', requireAdmin, async (req, res, next) => {
+  try {
+    const { 
+      page = 1, 
+      limit = 100, 
+      userId, 
+      internalIp, 
+      externalIp, 
+      macAddress,
+      startDate, 
+      endDate,
+      dateRangeStart,
+      dateRangeEnd
+    } = req.query;
+    
+    const offset = (page - 1) * limit;
+    
+    const { getImmutableAccessLogs } = await import('../services/immutableLogService.js');
+    const { createAdminAccessLog } = await import('../services/adminAccessLogService.js');
+    
+    const filters = {
+      userId: userId ? parseInt(userId) : null,
+      internalIp,
+      externalIp,
+      macAddress,
+      startDate,
+      endDate,
+      dateRange: (dateRangeStart && dateRangeEnd) ? {
+        start: dateRangeStart,
+        end: dateRangeEnd
+      } : null,
+      limit: parseInt(limit),
+      offset: offset
+    };
+    
+    const logs = await getImmutableAccessLogs(filters);
+    
+    // Admin erişim logu
+    await createAdminAccessLog({
+      admin_id: req.admin.id,
+      action: 'view_immutable_logs',
+      search_criteria: filters,
+      ip_address: req.ip,
+      user_agent: req.get('user-agent')
+    });
+    
+    // Toplam sayıyı al
+    const client = await pool.connect();
+    try {
+      let countQuery = 'SELECT COUNT(*) as total FROM immutable_access_logs WHERE 1=1';
+      const countParams = [];
+      let paramIndex = 1;
+      
+      if (userId) {
+        countQuery += ` AND user_id = $${paramIndex++}`;
+        countParams.push(parseInt(userId));
+      }
+      if (internalIp) {
+        countQuery += ` AND internal_ip = $${paramIndex++}`;
+        countParams.push(internalIp);
+      }
+      if (externalIp) {
+        countQuery += ` AND external_ip = $${paramIndex++}`;
+        countParams.push(externalIp);
+      }
+      if (macAddress) {
+        countQuery += ` AND mac_address = $${paramIndex++}`;
+        countParams.push(macAddress);
+      }
+      if (startDate) {
+        countQuery += ` AND connection_start_time >= $${paramIndex++}`;
+        countParams.push(startDate);
+      }
+      if (endDate) {
+        countQuery += ` AND connection_end_time <= $${paramIndex++}`;
+        countParams.push(endDate);
+      }
+      
+      const countResult = await client.query(countQuery, countParams);
+      const total = parseInt(countResult.rows[0].total);
+      
+      res.json({
+        logs,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: total,
+          totalPages: Math.ceil(total / parseInt(limit))
+        }
+      });
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/admin/immutable-logs/ip-lookup
+ * "Şu IP'yi şu saatte kim kullandı?" sorgusu
+ */
+router.get('/immutable-logs/ip-lookup', requireAdmin, async (req, res, next) => {
+  try {
+    const { ip, timestamp } = req.query;
+    
+    if (!ip || !timestamp) {
+      return res.status(400).json({ 
+        error: 'IP adresi ve timestamp gereklidir' 
+      });
+    }
+    
+    const { findUserByIpAndTime } = await import('../services/immutableLogService.js');
+    const { createAdminAccessLog } = await import('../services/adminAccessLogService.js');
+    
+    const logs = await findUserByIpAndTime(ip, new Date(timestamp));
+    
+    // Admin erişim logu
+    await createAdminAccessLog({
+      admin_id: req.admin.id,
+      action: 'ip_lookup',
+      search_criteria: { ip, timestamp },
+      accessed_log_ids: logs.map(l => l.id),
+      ip_address: req.ip,
+      user_agent: req.get('user-agent')
+    });
+    
+    res.json({ logs });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/admin/immutable-logs/export
+ * 5651 uyumlu resmi log çıktısı (PDF/CSV)
+ */
+router.get('/immutable-logs/export', requireAdmin, async (req, res, next) => {
+  try {
+    const { 
+      format = 'csv', 
+      startDate, 
+      endDate,
+      userId,
+      internalIp,
+      externalIp,
+      macAddress
+    } = req.query;
+    
+    const { getImmutableAccessLogs } = await import('../services/immutableLogService.js');
+    const { createAdminAccessLog } = await import('../services/adminAccessLogService.js');
+    
+    const filters = {
+      userId: userId ? parseInt(userId) : null,
+      internalIp,
+      externalIp,
+      macAddress,
+      startDate,
+      endDate,
+      limit: 100000 // Export için yüksek limit
+    };
+    
+    const logs = await getImmutableAccessLogs(filters);
+    
+    // Admin erişim logu
+    await createAdminAccessLog({
+      admin_id: req.admin.id,
+      action: 'export_immutable_logs',
+      search_criteria: filters,
+      accessed_log_ids: logs.map(l => l.id),
+      ip_address: req.ip,
+      user_agent: req.get('user-agent')
+    });
+    
+    if (format === 'csv') {
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename=5651_logs_${new Date().toISOString().split('T')[0]}.csv`);
+      
+      // 5651 uyumlu CSV header
+      res.write('\uFEFF'); // UTF-8 BOM
+      res.write('Tarih,Saat,Kullanıcı ID,Ad Soyad,İç IP,Dış IP,MAC Adresi,Gateway ID,Firewall ID,Başlangıç Zamanı,Bitiş Zamanı,Kaynak Port,Hedef Port,Protokol,Veri Transferi (Byte),Log Hash\n');
+      
+      // CSV rows
+      logs.forEach(log => {
+        const startTime = log.connection_start_time ? new Date(log.connection_start_time) : null;
+        const endTime = log.connection_end_time ? new Date(log.connection_end_time) : null;
+        const date = startTime ? startTime.toISOString().split('T')[0] : '';
+        const time = startTime ? startTime.toTimeString().split(' ')[0] : '';
+        
+        res.write([
+          date,
+          time,
+          log.user_id || '',
+          log.full_name || '',
+          log.internal_ip || '',
+          log.external_ip || '',
+          log.mac_address || '',
+          log.gateway_id || '',
+          log.firewall_id || '',
+          log.connection_start_time || '',
+          log.connection_end_time || '',
+          log.source_port || '',
+          log.destination_port || '',
+          log.protocol || '',
+          log.data_transferred_bytes || 0,
+          log.log_hash || ''
+        ].map(field => `"${String(field).replace(/"/g, '""')}"`).join(',') + '\n');
+      });
+      
+      res.end();
+    } else {
+      res.json({ 
+        logs,
+        export_info: {
+          export_date: new Date().toISOString(),
+          total_records: logs.length,
+          format: '5651_kanunu_uyumlu'
+        }
+      });
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/admin/hash-chain/verify
+ * Hash chain bütünlüğünü kontrol eder
+ */
+router.get('/hash-chain/verify', requireAdmin, async (req, res, next) => {
+  try {
+    const { verifyHashChain } = await import('../services/hashChainService.js');
+    const result = await verifyHashChain();
+    
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/admin/daily-log-files
+ * Günlük log dosyalarını listeler
+ */
+router.get('/daily-log-files', requireAdmin, async (req, res, next) => {
+  try {
+    const { getDailyLogFiles } = await import('../services/dailyLogFileService.js');
+    const { startDate, endDate, status } = req.query;
+    
+    const files = await getDailyLogFiles({
+      startDate,
+      endDate,
+      status,
+      limit: 365 // Son 1 yıl
+    });
+    
+    res.json({ files });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/admin/daily-log-files/seal
+ * Günlük log dosyasını mühürler
+ */
+router.post('/daily-log-files/seal', requireAdmin, async (req, res, next) => {
+  try {
+    const { sealDailyLogFile } = await import('../services/dailyLogFileService.js');
+    const { logDate, seal_type, seal_authority } = req.body;
+    
+    const result = await sealDailyLogFile(
+      logDate ? new Date(logDate) : null,
+      {
+        seal_type: seal_type || 'manual',
+        seal_authority: seal_authority || 'ADMIN'
+      }
+    );
+    
+    res.json({ success: true, seal_info: result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * GET /api/admin/mac-list
  * MAC adresi whitelist/blacklist
  */

@@ -25,3 +25,4 @@ try {
   console.error('❌ immutableLogService import hatası:', error.message);
 }
 
+
