@@ -51,10 +51,12 @@ export default function MainMenu({ onSelect }: MainMenuProps) {
   return (
     <div className="glass-strong rounded-3xl shadow-2xl p-5 animate-fade-in hover-lift">
       <div className="text-center mb-4">
-        <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-primary-500 to-purple-600 mb-2 shadow-glow animate-float">
-          <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" />
-          </svg>
+        <div className="inline-flex items-center justify-center mb-2">
+          <img 
+            src="/assets/bvspot_logo_metalic.png" 
+            alt="BVSPOT Logo" 
+            className="h-16 w-auto"
+          />
         </div>
         <h1 className="text-2xl font-extrabold gradient-text mb-1 animate-slide-down">
           {t('guestWifiRegistration', language)}

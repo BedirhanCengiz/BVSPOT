@@ -14,9 +14,9 @@ router.get('/profile', authenticateToken, async (req, res, next) => {
     const client = await pool.connect();
     try {
       const result = await client.query(
-        `SELECT id, full_name, phone, status, quota_mb, quota_used_mb, 
+        `SELECT phone, full_name, phone as id, status, quota_mb, quota_used_mb, 
                 speed_limit_mbps, connection_start_time, connection_end_time, created_at
-         FROM users WHERE id = $1`,
+         FROM users WHERE phone = $1`,
         [req.user.id]
       );
 
@@ -49,7 +49,7 @@ router.get('/session', authenticateToken, async (req, res, next) => {
       const result = await client.query(
         `SELECT s.*, u.full_name, u.quota_mb, u.quota_used_mb, u.speed_limit_mbps
          FROM sessions s
-         JOIN users u ON s.user_id = u.id
+         JOIN users u ON s.user_id = u.phone
          WHERE s.user_id = $1 AND s.status = 'active'
          ORDER BY s.start_time DESC
          LIMIT 1`,

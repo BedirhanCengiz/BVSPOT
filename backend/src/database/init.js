@@ -5,12 +5,11 @@ export async function initializeDatabase() {
   const client = await pool.connect();
   
   try {
-    // Users table
+    // Users table - phone as primary key
     await client.query(`
       CREATE TABLE IF NOT EXISTS users (
-        id SERIAL PRIMARY KEY,
+        phone VARCHAR(20) PRIMARY KEY,
         full_name VARCHAR(255) NOT NULL,
-        phone VARCHAR(20) NOT NULL UNIQUE,
         tckn VARCHAR(11),
         passport_no VARCHAR(50),
         foreign_id_no VARCHAR(50),
@@ -20,7 +19,7 @@ export async function initializeDatabase() {
         mac_address VARCHAR(17),
         ip_address VARCHAR(45),
         status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'verified', 'active', 'blocked', 'expired', 'awaiting_admin_approval')),
-        quota_mb INTEGER DEFAULT 1000,
+        quota_mb INTEGER DEFAULT NULL, -- NULL = sınırsız kota
         quota_used_mb INTEGER DEFAULT 0,
         speed_limit_mbps INTEGER DEFAULT 10,
         connection_start_time TIMESTAMP,
@@ -30,7 +29,6 @@ export async function initializeDatabase() {
         language VARCHAR(10) DEFAULT 'tr' CHECK (language IN ('tr', 'en')),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        CONSTRAINT unique_phone UNIQUE (phone),
         CONSTRAINT unique_tckn UNIQUE (tckn),
         CONSTRAINT unique_passport UNIQUE (passport_no),
         CONSTRAINT unique_foreign_id UNIQUE (foreign_id_no)
@@ -54,7 +52,7 @@ export async function initializeDatabase() {
     await client.query(`
       CREATE TABLE IF NOT EXISTS sessions (
         id SERIAL PRIMARY KEY,
-        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        user_id VARCHAR(20) REFERENCES users(phone) ON DELETE CASCADE,
         mac_address VARCHAR(17),
         internal_ip VARCHAR(45), -- İç IP (DHCP)
         external_ip VARCHAR(45), -- Dış IP (NAT sonrası)
@@ -72,7 +70,7 @@ export async function initializeDatabase() {
     await client.query(`
       CREATE TABLE IF NOT EXISTS logs (
         id SERIAL PRIMARY KEY,
-        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        user_id VARCHAR(20) REFERENCES users(phone) ON DELETE SET NULL,
         action VARCHAR(100) NOT NULL,
         ip_address VARCHAR(45),
         mac_address VARCHAR(17),
@@ -110,7 +108,7 @@ export async function initializeDatabase() {
     await client.query(`
       CREATE TABLE IF NOT EXISTS web_traffic_logs (
         id SERIAL PRIMARY KEY,
-        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        user_id VARCHAR(20) REFERENCES users(phone) ON DELETE SET NULL,
         session_id INTEGER REFERENCES sessions(id) ON DELETE SET NULL,
         ip_address VARCHAR(45) NOT NULL,
         mac_address VARCHAR(17),
@@ -151,6 +149,18 @@ export async function initializeDatabase() {
     } catch (error) {
       // Kolonlar zaten varsa hata vermez, devam et
       console.log('Migration: Kolonlar zaten mevcut veya eklenemedi:', error.message);
+    }
+
+    // Immutable access logs tablosuna eksik kolonları ekle (5651 Kanunu trafik bilgileri)
+    try {
+      await client.query(`
+        ALTER TABLE immutable_access_logs 
+        ADD COLUMN IF NOT EXISTS source_ip VARCHAR(45),
+        ADD COLUMN IF NOT EXISTS destination_ip VARCHAR(45),
+        ADD COLUMN IF NOT EXISTS session_duration_seconds INTEGER
+      `);
+    } catch (error) {
+      console.log('Immutable logs migration: Kolonlar zaten mevcut veya eklenemedi:', error.message);
     }
 
     // SSID Management table - SSID bazlı arkaplan yönetimi
@@ -197,7 +207,7 @@ export async function initializeDatabase() {
     await client.query(`
       CREATE TABLE IF NOT EXISTS kvkk_consents (
         id SERIAL PRIMARY KEY,
-        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        user_id VARCHAR(20) REFERENCES users(phone) ON DELETE SET NULL,
         consent_type VARCHAR(50) NOT NULL CHECK (consent_type IN ('kvkk', 'terms', 'law5651')),
         consent_version VARCHAR(20) NOT NULL, -- Metin versiyonu (örn: '1.0', '2.1')
         consent_text_hash VARCHAR(64), -- Onaylanan metnin SHA-256 hash'i
@@ -214,18 +224,21 @@ export async function initializeDatabase() {
         id BIGSERIAL PRIMARY KEY,
         log_hash VARCHAR(64) NOT NULL UNIQUE, -- Bu log satırının SHA-256 hash'i
         previous_log_hash VARCHAR(64), -- Önceki logun hash'i (hash chain)
-        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        user_id VARCHAR(20) REFERENCES users(phone) ON DELETE SET NULL,
         session_id INTEGER REFERENCES sessions(id) ON DELETE SET NULL,
-        internal_ip VARCHAR(45) NOT NULL, -- İç IP (DHCP)
+        internal_ip VARCHAR(45) NOT NULL, -- İç IP (DHCP) - Kullanıcıya atanan iç IP (NAT varsa)
         external_ip VARCHAR(45), -- Dış IP (NAT sonrası)
+        source_ip VARCHAR(45), -- Kaynak IP adresi (kullanıcının bağlandığı IP)
+        destination_ip VARCHAR(45), -- Hedef IP adresi (erişilen sunucu IP'si)
         mac_address VARCHAR(17) NOT NULL,
         gateway_id VARCHAR(100),
         firewall_id VARCHAR(100),
         connection_start_time TIMESTAMP NOT NULL, -- UTC+3, saniye hassasiyetinde
-        connection_end_time TIMESTAMP,
-        source_port INTEGER, -- CGNAT varsa zorunlu
-        destination_port INTEGER,
-        protocol VARCHAR(20), -- HTTP, HTTPS, FTP, SSH, DNS, TCP, UDP
+        connection_end_time TIMESTAMP, -- Bitiş zamanı
+        source_port INTEGER, -- Kaynak port (CGNAT varsa zorunlu)
+        destination_port INTEGER, -- Hedef port
+        protocol VARCHAR(20), -- Kullanılan protokol (HTTP, HTTPS, FTP, SSH, DNS, TCP, UDP vb.)
+        session_duration_seconds INTEGER, -- Oturum süresi (saniye cinsinden)
         data_transferred_bytes BIGINT DEFAULT 0,
         log_date DATE NOT NULL, -- Günlük dosya için
         created_at TIMESTAMP DEFAULT (NOW() AT TIME ZONE 'Europe/Istanbul') NOT NULL,
@@ -309,6 +322,8 @@ export async function initializeDatabase() {
       CREATE INDEX IF NOT EXISTS idx_immutable_logs_session ON immutable_access_logs(session_id);
       CREATE INDEX IF NOT EXISTS idx_immutable_logs_internal_ip ON immutable_access_logs(internal_ip);
       CREATE INDEX IF NOT EXISTS idx_immutable_logs_external_ip ON immutable_access_logs(external_ip);
+      CREATE INDEX IF NOT EXISTS idx_immutable_logs_source_ip ON immutable_access_logs(source_ip);
+      CREATE INDEX IF NOT EXISTS idx_immutable_logs_destination_ip ON immutable_access_logs(destination_ip);
       CREATE INDEX IF NOT EXISTS idx_immutable_logs_mac ON immutable_access_logs(mac_address);
       CREATE INDEX IF NOT EXISTS idx_immutable_logs_date ON immutable_access_logs(log_date);
       CREATE INDEX IF NOT EXISTS idx_immutable_logs_start_time ON immutable_access_logs(connection_start_time);

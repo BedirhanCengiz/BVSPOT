@@ -8,6 +8,7 @@ import { sendOTP, verifyOTP } from '../services/otpService.js';
 import { generateToken } from '../middleware/auth.js';
 import { createLog } from '../services/logService.js';
 import { registerRateLimiter, otpRateLimiter } from '../middleware/rateLimiter.js';
+import { passwordValidator } from '../middleware/security.js';
 
 const router = express.Router();
 
@@ -24,7 +25,7 @@ router.post('/register',
     body('tckn').optional().matches(/^[0-9]{11}$/).withMessage('TCKN 11 haneli olmalıdır'),
     body('passportNo').optional().isLength({ min: 5, max: 50 }).withMessage('Pasaport numarası 5-50 karakter arasında olmalıdır'),
     body('foreignIdNo').optional().isLength({ min: 5, max: 50 }).withMessage('Yabancı kimlik numarası 5-50 karakter arasında olmalıdır'),
-    body('password').isLength({ min: 6 }).withMessage('Şifre en az 6 karakter olmalıdır'),
+    ...passwordValidator,
     body('birthDate').isISO8601().withMessage('Geçerli bir doğum tarihi giriniz'),
     body('language').optional().isIn(['tr', 'en']).withMessage('Geçerli bir dil seçiniz'),
     body('kvkkAccepted').equals('true').withMessage('KVKK onayı zorunludur'),
@@ -108,7 +109,7 @@ router.post('/register',
       // Kullanıcı zaten kayıtlı mı kontrol et
       const client = await pool.connect();
       try {
-        let existingQuery = 'SELECT id, status FROM users WHERE phone = $1';
+        let existingQuery = 'SELECT phone, status FROM users WHERE phone = $1';
         let existingParams = [phone];
         
         if (idType === 'tckn' && tckn) {
@@ -130,19 +131,20 @@ router.post('/register',
           // Eğer MAC adresi eşleşiyorsa ve kullanıcı aktifse, direkt erişim ver
           if (macAddress && user.status === 'active') {
             const macMatch = await client.query(
-              'SELECT id FROM users WHERE mac_address = $1 AND id = $2',
-              [macAddress, user.id]
+              'SELECT phone FROM users WHERE mac_address = $1 AND phone = $2',
+              [macAddress, user.phone]
             );
             
             if (macMatch.rows.length > 0) {
-              await createLog(user.id, 'auto_login_mac', req, { macAddress });
-              const token = generateToken(user.id);
+              await createLog(user.phone, 'auto_login_mac', req, { macAddress });
+              const token = generateToken(user.phone);
               return res.json({
                 success: true,
                 message: 'Otomatik giriş başarılı',
                 token,
                 user: {
-                  id: user.id,
+                  id: user.phone,
+                  phone: user.phone,
                   fullName: user.full_name,
                   status: user.status
                 }
@@ -152,12 +154,12 @@ router.post('/register',
 
           // Kullanıcı varsa ama OTP doğrulanmamışsa, OTP gönder
           if (user.status === 'pending') {
-            await createLog(user.id, 'register_retry', req, { phone });
+            await createLog(user.phone, 'register_retry', req, { phone });
             return res.json({
               success: true,
               message: 'Kullanıcı kayıtlı, OTP gönderiliyor',
               requiresOTP: true,
-              userId: user.id
+              userId: user.phone
             });
           }
 
@@ -170,15 +172,15 @@ router.post('/register',
         // Diğerleri için status = 'pending' (OTP doğrulaması gerekli)
         const initialStatus = idType === 'passport' ? 'pending' : 'pending';
 
-        // Yeni kullanıcı kaydı
+        // Yeni kullanıcı kaydı - varsayılan olarak sınırsız kota (NULL)
         const result = await client.query(
           `INSERT INTO users (
             full_name, phone, id_type, tckn, passport_no, foreign_id_no, 
             birth_date, password_hash, mac_address, ip_address, 
-            kvkk_accepted, terms_accepted, language, status
+            kvkk_accepted, terms_accepted, language, status, quota_mb
           )
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-           RETURNING id, full_name, phone, status, language, id_type`,
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+           RETURNING phone, full_name, phone as id, status, language, id_type`,
           [
             fullName, 
             phone, 
@@ -193,20 +195,79 @@ router.post('/register',
             kvkkAccepted === 'true', 
             termsAccepted === 'true',
             language || 'tr',
-            initialStatus
+            initialStatus,
+            null // quota_mb = NULL (sınırsız)
           ]
         );
 
         const newUser = result.rows[0];
         const maskedId = idValue ? idValue.substring(0, 5) + '****' : '****';
-        await createLog(newUser.id, 'register_success', req, { phone, idType, idValue: maskedId });
+        await createLog(newUser.phone, 'register_success', req, { phone, idType, idValue: maskedId });
+        
+        // KVKK onay kayıtları (detaylı)
+        if (kvkkAccepted === 'true') {
+          try {
+            const { createKVKKConsent } = await import('../services/kvkkConsentService.js');
+            // KVKK metni versiyonu (settings'ten veya sabit değer)
+            const kvkkVersion = process.env.KVKK_VERSION || '1.0';
+            const kvkkText = process.env.KVKK_TEXT || 'KVKK Aydınlatma Metni'; // Production'da gerçek metin olmalı
+            
+            await createKVKKConsent({
+              user_id: newUser.phone,
+              consent_type: 'kvkk',
+              consent_version: kvkkVersion,
+              consent_text: kvkkText,
+              ip_address: req.ip,
+              user_agent: req.get('user-agent')
+            });
+          } catch (consentError) {
+            console.error('KVKK onay kaydı hatası:', consentError);
+          }
+        }
+        
+        if (termsAccepted === 'true') {
+          try {
+            const { createKVKKConsent } = await import('../services/kvkkConsentService.js');
+            const termsVersion = process.env.TERMS_VERSION || '1.0';
+            const termsText = process.env.TERMS_TEXT || 'Kullanım Şartları'; // Production'da gerçek metin olmalı
+            
+            await createKVKKConsent({
+              user_id: newUser.phone,
+              consent_type: 'terms',
+              consent_version: termsVersion,
+              consent_text: termsText,
+              ip_address: req.ip,
+              user_agent: req.get('user-agent')
+            });
+          } catch (consentError) {
+            console.error('Kullanım şartları onay kaydı hatası:', consentError);
+          }
+        }
+        
+        // 5651 Kanunu bilgilendirme onayı
+        try {
+          const { createKVKKConsent } = await import('../services/kvkkConsentService.js');
+          const law5651Version = process.env.LAW5651_VERSION || '1.0';
+          const law5651Text = process.env.LAW5651_TEXT || '5651 sayılı kanun kapsamında log tutulduğuna dair bilgilendirme';
+          
+          await createKVKKConsent({
+            user_id: newUser.phone,
+            consent_type: 'law5651',
+            consent_version: law5651Version,
+            consent_text: law5651Text,
+            ip_address: req.ip,
+            user_agent: req.get('user-agent')
+          });
+        } catch (consentError) {
+          console.error('5651 bilgilendirme onay kaydı hatası:', consentError);
+        }
 
         // Pasaport kayıtları için admin onayı mesajı
         if (idType === 'passport') {
           return res.json({
             success: true,
             message: 'Pasaport kaydınız admin onayına gönderildi',
-            userId: newUser.id,
+            userId: newUser.phone,
             requiresApproval: true,
             hasPassword: !!passwordHash
           });
@@ -215,7 +276,7 @@ router.post('/register',
         res.json({
           success: true,
           message: 'Kayıt başarılı, OTP kodu gönderiliyor',
-          userId: newUser.id,
+          userId: newUser.phone,
           requiresOTP: true,
           hasPassword: !!passwordHash
         });
@@ -264,7 +325,7 @@ router.post('/send-otp',
   otpRateLimiter,
   [
     body('phone').matches(/^[0-9]{10,11}$/).withMessage('Geçerli bir telefon numarası giriniz'),
-    body('userId').optional().isInt().withMessage('Geçerli bir kullanıcı ID giriniz')
+    body('userId').optional().matches(/^[0-9]{10,11}$/).withMessage('Geçerli bir telefon numarası giriniz')
   ],
   async (req, res, next) => {
     try {
@@ -279,7 +340,7 @@ router.post('/send-otp',
       if (userId) {
         const client = await pool.connect();
         try {
-          const userCheck = await client.query('SELECT id, phone FROM users WHERE id = $1', [userId]);
+          const userCheck = await client.query('SELECT phone FROM users WHERE phone = $1', [userId]);
           if (userCheck.rows.length === 0) {
             return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
           }
@@ -312,7 +373,7 @@ router.post('/verify-otp',
   [
     body('phone').matches(/^[0-9]{10,11}$/).withMessage('Geçerli bir telefon numarası giriniz'),
     body('code').matches(/^[0-9]{6}$/).withMessage('OTP kodu 6 haneli olmalıdır'),
-    body('userId').isInt().withMessage('Kullanıcı ID gerekli')
+    body('userId').matches(/^[0-9]{10,11}$/).withMessage('Geçerli bir telefon numarası giriniz')
   ],
   async (req, res, next) => {
     try {
@@ -327,8 +388,8 @@ router.post('/verify-otp',
       const client = await pool.connect();
       let user;
       try {
-        const userResult = await client.query('SELECT * FROM users WHERE id = $1 AND phone = $2', [userId, phone]);
-        if (userResult.rows.length === 0) {
+        const userResult = await client.query('SELECT * FROM users WHERE phone = $1', [phone]);
+        if (userResult.rows.length === 0 || userResult.rows[0].phone !== userId) {
           return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
         }
         user = userResult.rows[0];
@@ -358,31 +419,66 @@ router.post('/verify-otp',
 
         // MAC adresini otomatik çek (middleware'den veya user'dan)
         const sessionMacAddress = req.macAddress || user.mac_address || null;
+        
+        // İç IP ve dış IP ayrımı (basit implementasyon - production'da DHCP/NAT'tan alınmalı)
+        const internalIp = req.ip || user.ip_address || null;
+        const externalIp = req.headers['x-forwarded-for'] || req.ip || null; // NAT sonrası IP
+        const gatewayId = req.headers['x-gateway-id'] || process.env.GATEWAY_ID || null;
+        const firewallId = req.headers['x-firewall-id'] || process.env.FIREWALL_ID || null;
 
-        // Session oluştur
-        await updateClient.query(
-          `INSERT INTO sessions (user_id, mac_address, ip_address, status)
-           VALUES ($1, $2, $3, 'active')
-           ON CONFLICT DO NOTHING`,
-          [userId, sessionMacAddress, req.ip]
+        // Session oluştur (5651 uyumlu)
+        const sessionResult = await updateClient.query(
+          `INSERT INTO sessions (user_id, mac_address, internal_ip, external_ip, ip_address, gateway_id, firewall_id, status)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, 'active')
+           RETURNING id`,
+          [userId, sessionMacAddress, internalIp, externalIp, internalIp, gatewayId, firewallId]
         );
+        
+        const sessionId = sessionResult.rows[0]?.id;
+        
+        // Immutable access log oluştur (5651 Kanunu)
+        if (sessionId) {
+          try {
+            const { logSessionStart } = await import('../services/immutableLogService.js');
+            await logSessionStart({
+              user_id: userId,
+              session_id: sessionId,
+              internal_ip: internalIp,
+              external_ip: externalIp,
+              mac_address: sessionMacAddress,
+              gateway_id: gatewayId,
+              firewall_id: firewallId,
+              start_time: new Date()
+            });
+            
+            // Günlük log dosyasına ekle
+            const { appendToDailyLogFile } = await import('../services/dailyLogFileService.js');
+            // Bu async olarak çalışabilir, hata durumunda log oluşturma başarısız olmasın
+            appendToDailyLogFile(sessionId, new Date()).catch(err => 
+              console.error('Günlük log dosyasına ekleme hatası:', err)
+            );
+          } catch (logError) {
+            console.error('Immutable log oluşturma hatası:', logError);
+            // Log hatası session oluşturmayı engellemesin
+          }
+        }
       } finally {
         updateClient.release();
       }
 
       // Token oluştur
-      const token = generateToken(userId);
+      const token = generateToken(phone);
 
-      await createLog(userId, 'otp_verify_success', req, { phone });
+      await createLog(phone, 'otp_verify_success', req, { phone });
 
       res.json({
         success: true,
         message: 'Doğrulama başarılı',
         token,
         user: {
-          id: user.id,
-          fullName: user.full_name,
+          id: user.phone,
           phone: user.phone,
+          fullName: user.full_name,
           status: 'active',
           quotaMb: user.quota_mb,
           speedLimitMbps: user.speed_limit_mbps,
@@ -439,19 +535,19 @@ router.post('/login',
         const isValid = await bcrypt.compare(password, user.password_hash);
 
         if (!isValid) {
-          await createLog(user.id, 'login_failed', req, { phone, reason: 'invalid_password' });
+          await createLog(user.phone, 'login_failed', req, { phone, reason: 'invalid_password' });
           return res.status(401).json({ error: 'Telefon numarası veya şifre hatalı' });
         }
 
         // Kullanıcı durumu kontrolü
         if (user.status === 'blocked') {
-          await createLog(user.id, 'login_blocked', req, { phone });
+          await createLog(user.phone, 'login_blocked', req, { phone });
           return res.status(403).json({ error: 'Hesabınız engellenmiş' });
         }
 
         // Pasaport kullanıcıları için admin onayı kontrolü
         if (user.id_type === 'passport' && user.status === 'pending') {
-          await createLog(user.id, 'login_pending_approval', req, { phone });
+          await createLog(user.phone, 'login_pending_approval', req, { phone });
           return res.status(403).json({ 
             error: 'Pasaport kaydınız admin onayı bekliyor. Lütfen onaylandıktan sonra tekrar deneyin.' 
           });
@@ -460,8 +556,8 @@ router.post('/login',
         // MAC adresi güncelle
         if (macAddress) {
           await client.query(
-            'UPDATE users SET mac_address = $1, ip_address = $2, updated_at = NOW() WHERE id = $3',
-            [macAddress, req.ip, user.id]
+            'UPDATE users SET mac_address = $1, ip_address = $2, updated_at = NOW() WHERE phone = $3',
+            [macAddress, req.ip, user.phone]
           );
         }
 
@@ -471,34 +567,69 @@ router.post('/login',
            SET status = 'active', 
                connection_start_time = NOW(),
                updated_at = NOW()
-           WHERE id = $1`,
-          [user.id]
+           WHERE phone = $1`,
+          [user.phone]
         );
 
         // MAC adresini otomatik çek (middleware'den veya body'den)
         const sessionMacAddress = macAddress || user.mac_address || null;
+        
+        // İç IP ve dış IP ayrımı (basit implementasyon - production'da DHCP/NAT'tan alınmalı)
+        const internalIp = req.ip || user.ip_address || null;
+        const externalIp = req.headers['x-forwarded-for'] || req.ip || null; // NAT sonrası IP
+        const gatewayId = req.headers['x-gateway-id'] || process.env.GATEWAY_ID || null;
+        const firewallId = req.headers['x-firewall-id'] || process.env.FIREWALL_ID || null;
 
-        // Session oluştur
-        await client.query(
-          `INSERT INTO sessions (user_id, mac_address, ip_address, status)
-           VALUES ($1, $2, $3, 'active')
-           ON CONFLICT DO NOTHING`,
-          [user.id, sessionMacAddress, req.ip]
+        // Session oluştur (5651 uyumlu)
+        const sessionResult = await client.query(
+          `INSERT INTO sessions (user_id, mac_address, internal_ip, external_ip, ip_address, gateway_id, firewall_id, status)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, 'active')
+           RETURNING id`,
+          [user.phone, sessionMacAddress, internalIp, externalIp, internalIp, gatewayId, firewallId]
         );
+        
+        const sessionId = sessionResult.rows[0]?.id;
+        
+        // Immutable access log oluştur (5651 Kanunu)
+        if (sessionId) {
+          try {
+            const { logSessionStart } = await import('../services/immutableLogService.js');
+            const immutableLogId = await logSessionStart({
+              user_id: user.phone,
+              session_id: sessionId,
+              internal_ip: internalIp,
+              external_ip: externalIp,
+              mac_address: sessionMacAddress,
+              gateway_id: gatewayId,
+              firewall_id: firewallId,
+              start_time: new Date()
+            });
+            
+            // Günlük log dosyasına ekle
+            const { appendToDailyLogFile } = await import('../services/dailyLogFileService.js');
+            // Bu async olarak çalışabilir, hata durumunda log oluşturma başarısız olmasın
+            appendToDailyLogFile(immutableLogId, new Date()).catch(err => 
+              console.error('Günlük log dosyasına ekleme hatası:', err)
+            );
+          } catch (logError) {
+            console.error('Immutable log oluşturma hatası:', logError);
+            // Log hatası session oluşturmayı engellemesin
+          }
+        }
 
         // Token oluştur
-        const token = generateToken(user.id);
+        const token = generateToken(user.phone);
 
-        await createLog(user.id, 'login_success', req, { phone, idType });
+        await createLog(user.phone, 'login_success', req, { phone, idType: user.id_type });
 
         res.json({
           success: true,
           message: 'Giriş başarılı',
           token,
           user: {
-            id: user.id,
-            fullName: user.full_name,
+            id: user.phone,
             phone: user.phone,
+            fullName: user.full_name,
             status: 'active',
             quotaMb: user.quota_mb,
             speedLimitMbps: user.speed_limit_mbps,

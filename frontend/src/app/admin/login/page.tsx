@@ -25,15 +25,21 @@ export default function AdminLogin() {
     setError(null);
 
     try {
+      console.log('Admin login attempt:', data.email);
       const response = await authAPI.adminLogin(data.email, data.password);
+      console.log('Admin login response:', response.data);
       if (response.data.success) {
         if (typeof window !== 'undefined') {
           localStorage.setItem('adminToken', response.data.token);
         }
         router.push('/admin/dashboard');
+      } else {
+        setError('Giriş başarısız');
       }
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Giriş başarısız');
+      console.error('Admin login error:', err);
+      const errorMessage = err.response?.data?.error || err.message || 'Giriş başarısız. Lütfen bilgilerinizi kontrol edin.';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -57,7 +63,7 @@ export default function AdminLogin() {
         <div className="absolute bottom-20 left-1/2 w-72 h-72 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-float" style={{ animationDelay: '4s' }}></div>
       </div>
 
-      <div className="w-full max-w-md glass-strong rounded-3xl shadow-2xl p-8 animate-fade-in hover-lift relative z-10">
+      <div className="w-full max-w-md glass-strong rounded-3xl shadow-2xl p-8 animate-fade-in hover-lift relative z-50" style={{ pointerEvents: 'auto' }}>
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
             <div className="bg-gradient-to-br from-primary-500 to-purple-600 p-4 rounded-2xl shadow-glow animate-float">
@@ -72,7 +78,7 @@ export default function AdminLogin() {
           <p className="text-gray-600 text-lg animate-slide-up">Yönetim paneline giriş yapın</p>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 animate-fade-in">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 animate-fade-in relative z-50" style={{ pointerEvents: 'auto' }}>
           <div className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
             <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1">
               E-posta <span className="text-red-500">*</span>
@@ -91,7 +97,7 @@ export default function AdminLogin() {
             />
             {errors.email && (
               <p className="mt-2 text-sm text-red-600 flex items-center gap-1 animate-slide-down">
-                <span>⚠️</span> {errors.email.message}
+                <span>⚠</span> {errors.email.message}
               </p>
             )}
           </div>
@@ -110,7 +116,7 @@ export default function AdminLogin() {
             />
             {errors.password && (
               <p className="mt-2 text-sm text-red-600 flex items-center gap-1 animate-slide-down">
-                <span>⚠️</span> {errors.password.message}
+                <span>⚠</span> {errors.password.message}
               </p>
             )}
           </div>
@@ -127,8 +133,8 @@ export default function AdminLogin() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-gradient-to-r from-primary-600 to-purple-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl hover:scale-[1.02] focus:outline-none focus:ring-4 focus:ring-primary-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all duration-300 relative overflow-hidden btn-glow group animate-slide-up"
-            style={{ animationDelay: '0.3s' }}
+            className="w-full bg-gradient-to-r from-primary-600 to-purple-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl hover:scale-[1.02] focus:outline-none focus:ring-4 focus:ring-primary-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all duration-300 relative overflow-hidden btn-glow group animate-slide-up cursor-pointer z-50"
+            style={{ animationDelay: '0.3s', pointerEvents: loading ? 'none' : 'auto' }}
           >
             <span className="relative z-10 flex items-center justify-center gap-2">
               {loading ? (

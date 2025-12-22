@@ -41,7 +41,7 @@ export async function getLogs(filters = {}) {
   const client = await pool.connect();
   
   try {
-    let query = 'SELECT l.*, u.full_name, u.phone FROM logs l LEFT JOIN users u ON l.user_id = u.id WHERE 1=1';
+    let query = 'SELECT l.*, u.full_name, u.phone FROM logs l LEFT JOIN users u ON l.user_id = u.phone WHERE 1=1';
     const params = [];
     let paramIndex = 1;
 

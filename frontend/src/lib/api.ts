@@ -7,6 +7,8 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 30000, // 30 seconds timeout
+  // Request/Response interceptors for better error handling
 });
 
 // Request interceptor - token ekle
@@ -41,30 +43,42 @@ api.interceptors.request.use(
 // Response interceptor - hata yönetimi
 api.interceptors.response.use(
   (response) => {
-    console.log(`API Response: ${response.config.method?.toUpperCase()} ${response.config.url}`, response.status);
+    // Production'da sadece hataları logla
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`API Response: ${response.config.method?.toUpperCase()} ${response.config.url}`, response.status);
+    }
     return response;
   },
   (error) => {
-    console.error('API Error:', {
-      url: error.config?.url,
-      method: error.config?.method,
-      code: error.code,
-      message: error.message,
-      response: error.response?.data,
-      status: error.response?.status
-    });
+    // Hataları her zaman logla (production'da da)
+    const isDev = process.env.NODE_ENV === 'development';
+    
+    if (isDev) {
+      console.error('API Error:', {
+        url: error.config?.url,
+        method: error.config?.method,
+        code: error.code,
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+    }
     
     // Network error kontrolü
     if (!error.response) {
       // ECONNREFUSED, Network Error, timeout vb.
       if (error.code === 'ECONNREFUSED' || error.message === 'Network Error' || error.code === 'ERR_NETWORK' || error.message?.includes('Network')) {
-        console.error('Backend sunucusuna bağlanılamıyor:', error.message, error.code);
+        if (isDev) {
+          console.error('Backend sunucusuna bağlanılamıyor:', error.message, error.code);
+        }
         error.networkError = true;
       }
     }
     
     if (error.response?.status === 401 || error.response?.status === 403) {
-      console.log('401/403 Unauthorized - Token temizleniyor');
+      if (isDev) {
+        console.log('401/403 Unauthorized - Token temizleniyor');
+      }
       if (typeof window !== 'undefined') {
         localStorage.removeItem('token');
         localStorage.removeItem('adminToken');
@@ -80,7 +94,9 @@ api.interceptors.response.use(
       error.rateLimitError = true;
       error.retryAfter = retryAfter ? parseInt(retryAfter) : 60; // Varsayılan 60 saniye
       error.rateLimitMessage = message;
-      console.warn('Rate limit exceeded:', message, 'Retry after:', retryAfter || '60 seconds');
+      if (isDev) {
+        console.warn('Rate limit exceeded:', message, 'Retry after:', retryAfter || '60 seconds');
+      }
     }
     
     return Promise.reject(error);
@@ -124,6 +140,10 @@ export const adminAPI = {
   getLogs: (params?: any) => api.get('/admin/logs', { params }),
   exportLogs: (params?: any) =>
     api.get('/admin/logs/export', { params, responseType: 'blob' }),
+  // 5651 Kanunu Immutable Logs API
+  getImmutableLogs: (params?: any) => api.get('/admin/immutable-logs', { params }),
+  exportImmutableLogs: (params?: any) =>
+    api.get('/admin/immutable-logs/export', { params, responseType: 'blob' }),
   getMacList: (params?: any) => api.get('/admin/mac-list', { params }),
   addMacToList: (data: any) => api.post('/admin/mac-list', data),
   // Web Traffic API

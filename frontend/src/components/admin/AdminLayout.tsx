@@ -11,8 +11,8 @@ import {
   LogOut,
   Menu,
   X,
-  Globe,
-  Wifi
+  Wifi,
+  Shield
 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { t } from '@/lib/i18n';
@@ -40,7 +40,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { href: '/admin/users', labelKey: 'users', icon: Users },
     { href: '/admin/ssids', labelKey: 'ssidManagement', icon: Wifi },
     { href: '/admin/logs', labelKey: 'logs', icon: FileText },
-    { href: '/admin/traffic', labelKey: 'webTraffic', icon: Globe },
+    { href: '/admin/immutable-logs', labelKey: '5651Logs', icon: Shield },
     { href: '/admin/settings', labelKey: 'settings', icon: Settings },
   ];
 
@@ -54,9 +54,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             alt="BVSPOT Logo" 
             className="h-8 w-auto"
           />
-          <h1 className="text-lg font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-            BVSPOT
-          </h1>
         </div>
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -82,9 +79,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 className="h-10 w-auto"
               />
               <div>
-                <h2 className="text-lg font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                  BVSPOT
-                </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{t('adminPanel', language)}</p>
               </div>
             </div>

@@ -70,10 +70,11 @@ export async function verifyOTP(phone, code) {
   // Veritabanına kaydet
   const client = await pool.connect();
   try {
+    // SQL Injection koruması - parametreli sorgu kullan
     await client.query(
       `INSERT INTO otp_codes (phone, code, verified, expires_at) 
-       VALUES ($1, $2, true, NOW() + INTERVAL '${OTP_EXPIRY_MINUTES} minutes')`,
-      [phone, code]
+       VALUES ($1, $2, true, NOW() + INTERVAL '1 minute' * $3)`,
+      [phone, code, OTP_EXPIRY_MINUTES]
     );
   } finally {
     client.release();

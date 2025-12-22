@@ -1,7 +1,11 @@
 import jwt from 'jsonwebtoken';
 import { pool } from '../database/db.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+// JWT_SECRET zorunlu olmalı ve en az 32 karakter
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET || JWT_SECRET === 'your-secret-key' || JWT_SECRET.length < 32) {
+  throw new Error('JWT_SECRET environment variable must be set and at least 32 characters long');
+}
 
 /**
  * JWT token doğrulama middleware
@@ -17,10 +21,10 @@ export async function authenticateToken(req, res, next) {
 
     const decoded = jwt.verify(token, JWT_SECRET);
     
-    // Kullanıcıyı veritabanından kontrol et
+    // Kullanıcıyı veritabanından kontrol et (phone as ID)
     const client = await pool.connect();
     try {
-      const result = await client.query('SELECT id, status FROM users WHERE id = $1', [decoded.userId]);
+      const result = await client.query('SELECT phone, status FROM users WHERE phone = $1', [decoded.userId]);
       
       if (result.rows.length === 0) {
         return res.status(401).json({ error: 'Kullanıcı bulunamadı' });
@@ -31,7 +35,8 @@ export async function authenticateToken(req, res, next) {
       }
 
       req.user = {
-        id: decoded.userId,
+        id: decoded.userId, // phone number
+        phone: decoded.userId,
         role: decoded.role || 'user'
       };
     } finally {

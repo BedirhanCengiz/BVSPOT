@@ -211,6 +211,79 @@ export async function migrateDatabase() {
       console.log('✅ web_traffic_logs tablosu zaten mevcut');
     }
 
+    // Immutable access logs tablosuna eksik kolonları ekle (5651 Kanunu trafik bilgileri)
+    const immutableLogsCheck = await client.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'immutable_access_logs'
+    `);
+
+    const existingColumns = immutableLogsCheck.rows.map(row => row.column_name);
+
+    if (!existingColumns.includes('source_ip')) {
+      console.log('📝 source_ip sütunu ekleniyor...');
+      await client.query(`
+        ALTER TABLE immutable_access_logs 
+        ADD COLUMN source_ip VARCHAR(45)
+      `);
+      console.log('✅ source_ip sütunu eklendi');
+    } else {
+      console.log('✅ source_ip sütunu zaten mevcut');
+    }
+
+    if (!existingColumns.includes('destination_ip')) {
+      console.log('📝 destination_ip sütunu ekleniyor...');
+      await client.query(`
+        ALTER TABLE immutable_access_logs 
+        ADD COLUMN destination_ip VARCHAR(45)
+      `);
+      console.log('✅ destination_ip sütunu eklendi');
+    } else {
+      console.log('✅ destination_ip sütunu zaten mevcut');
+    }
+
+    if (!existingColumns.includes('session_duration_seconds')) {
+      console.log('📝 session_duration_seconds sütunu ekleniyor...');
+      await client.query(`
+        ALTER TABLE immutable_access_logs 
+        ADD COLUMN session_duration_seconds INTEGER
+      `);
+      console.log('✅ session_duration_seconds sütunu eklendi');
+    } else {
+      console.log('✅ session_duration_seconds sütunu zaten mevcut');
+    }
+
+    // Index'leri ekle
+    try {
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_immutable_logs_source_ip ON immutable_access_logs(source_ip)`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_immutable_logs_destination_ip ON immutable_access_logs(destination_ip)`);
+      console.log('✅ Yeni indexler eklendi');
+    } catch (error) {
+      console.log('ℹ️  Indexler zaten mevcut veya eklenemedi:', error.message);
+    }
+
+    // quota_mb default değerini NULL yap (sınırsız kota için)
+    try {
+      const quotaDefaultCheck = await client.query(`
+        SELECT column_default 
+        FROM information_schema.columns 
+        WHERE table_name = 'users' AND column_name = 'quota_mb'
+      `);
+      
+      if (quotaDefaultCheck.rows.length > 0 && quotaDefaultCheck.rows[0].column_default !== 'NULL::integer') {
+        console.log('📝 quota_mb default değeri NULL olarak güncelleniyor (sınırsız kota)...');
+        await client.query(`
+          ALTER TABLE users 
+          ALTER COLUMN quota_mb SET DEFAULT NULL
+        `);
+        console.log('✅ quota_mb default değeri NULL olarak güncellendi');
+      } else {
+        console.log('✅ quota_mb default değeri zaten NULL');
+      }
+    } catch (error) {
+      console.log('ℹ️  quota_mb default değeri güncellenirken hata:', error.message);
+    }
+
     console.log('✅ Veritabanı migration tamamlandı!');
   } catch (error) {
     console.error('❌ Migration hatası:', error);

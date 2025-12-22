@@ -27,10 +27,24 @@ export function errorHandler(err, req, res, next) {
     });
   }
 
-  // Default error
+  // Default error - Production'da detaylı hata bilgisi gösterme
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  
+  // Sensitive bilgileri gizle
+  let errorMessage = 'Sunucu hatası';
+  if (isDevelopment) {
+    errorMessage = err.message || 'Sunucu hatası';
+  } else if (err.status && err.status < 500) {
+    // 4xx hataları kullanıcıya gösterilebilir
+    errorMessage = err.message || 'İstek hatası';
+  }
+
   res.status(err.status || 500).json({
-    error: err.message || 'Sunucu hatası',
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+    error: errorMessage,
+    ...(isDevelopment && { 
+      stack: err.stack,
+      details: err.details 
+    })
   });
 }
 

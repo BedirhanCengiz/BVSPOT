@@ -5,6 +5,7 @@ import { requireAdmin } from '../middleware/auth.js';
 import { pool } from '../database/db.js';
 import { getLogs } from '../services/logService.js';
 import { createLog } from '../services/logService.js';
+import { passwordValidator } from '../middleware/security.js';
 
 const router = express.Router();
 
@@ -26,14 +27,7 @@ router.get('/dashboard', async (req, res, next) => {
       const todayEnd = new Date();
       todayEnd.setHours(23, 59, 59, 999);
       
-      // Test: Bugünkü kayıtları kontrol et
-      const testQuery = await client.query(`
-        SELECT COUNT(*) as count, MIN(created_at) as min_date, MAX(created_at) as max_date
-        FROM users
-        WHERE created_at >= $1::timestamp AND created_at <= $2::timestamp
-      `, [todayStart.toISOString(), todayEnd.toISOString()]);
-      console.log('Test Query Result:', testQuery.rows[0]);
-      
+      // Günlük istatistikler - optimize edilmiş tek sorgu
       const dailyStats = await client.query(`
         SELECT 
           COUNT(*) FILTER (WHERE created_at >= $1::timestamp AND created_at <= $2::timestamp)::INTEGER as today_registrations,
@@ -81,7 +75,7 @@ router.get('/dashboard', async (req, res, next) => {
           onlineUsers = await client.query(`
             SELECT COALESCE(COUNT(DISTINCT s.user_id), 0)::INTEGER as count
             FROM sessions s
-            INNER JOIN users u ON s.user_id = u.id
+            INNER JOIN users u ON s.user_id = u.phone
             WHERE s.status = 'active' AND (
               (u.connection_start_time IS NOT NULL AND u.connection_start_time > NOW() - INTERVAL '5 minutes') 
               OR 
@@ -140,22 +134,10 @@ router.get('/dashboard', async (req, res, next) => {
       // Daily stats'ı güvenli şekilde al
       const dailyData = dailyStats.rows[0] || {};
       
-      // Debug için log
-      console.log('=== DASHBOARD STATS DEBUG ===');
-      console.log('Today Start:', todayStart.toISOString());
-      console.log('Today End:', todayEnd.toISOString());
-      console.log('Daily Stats Raw:', dailyStats.rows[0]);
-      console.log('Daily Data:', dailyData);
-      console.log('Today Registrations Raw:', dailyData.today_registrations);
-      console.log('Today Registrations Type:', typeof dailyData.today_registrations);
-      
       // Değerleri güvenli şekilde parse et
       const todayRegistrations = dailyData.today_registrations !== null && dailyData.today_registrations !== undefined 
         ? parseInt(dailyData.today_registrations) 
         : 0;
-      
-      console.log('Parsed Today Registrations:', todayRegistrations);
-      console.log('===========================');
 
       res.json({
         daily: {
@@ -191,60 +173,107 @@ router.get('/dashboard', async (req, res, next) => {
  */
 router.get('/users', async (req, res, next) => {
   try {
-    const { page = 1, limit = 50, status, search, startDate, endDate, idType, pendingPassport } = req.query;
+    const { page = 1, limit = 50, status, search, startDate, endDate, idType, pendingPassport, onlineOnly } = req.query;
     const offset = (page - 1) * limit;
 
     const client = await pool.connect();
     try {
       let query = `
-        SELECT id, full_name, phone, tckn, passport_no, foreign_id_no, id_type, birth_date, mac_address, ip_address,
-               status, quota_mb, quota_used_mb, speed_limit_mbps,
-               connection_start_time, connection_end_time, created_at
-        FROM users
+        SELECT DISTINCT u.phone as id, u.phone, u.full_name, u.tckn, u.passport_no, u.foreign_id_no, u.id_type, u.birth_date, u.mac_address, u.ip_address,
+               u.status, u.quota_mb, u.quota_used_mb, u.speed_limit_mbps,
+               u.connection_start_time, u.connection_end_time, u.created_at
+        FROM users u
+        ${onlineOnly === 'true' ? 'INNER JOIN sessions s ON u.phone = s.user_id' : ''}
         WHERE 1=1
       `;
       const params = [];
       let paramIndex = 1;
 
+      if (onlineOnly === 'true') {
+        query += ` AND s.status = 'active' AND s.start_time > NOW() - INTERVAL '5 minutes'`;
+      }
+
       if (status) {
-        query += ` AND status = $${paramIndex++}`;
+        query += ` AND u.status = $${paramIndex++}`;
         params.push(status);
       }
 
       // Pasaport bekleyenleri filtrele
       if (pendingPassport === 'true') {
-        query += ` AND id_type = 'passport' AND (status = 'pending' OR status = 'awaiting_admin_approval')`;
+        query += ` AND u.id_type = 'passport' AND (u.status = 'pending' OR u.status = 'awaiting_admin_approval')`;
       }
 
       if (idType) {
-        query += ` AND id_type = $${paramIndex++}`;
+        query += ` AND u.id_type = $${paramIndex++}`;
         params.push(idType);
       }
 
       if (search) {
-        query += ` AND (full_name ILIKE $${paramIndex} OR phone LIKE $${paramIndex} OR tckn LIKE $${paramIndex} OR passport_no LIKE $${paramIndex} OR foreign_id_no LIKE $${paramIndex})`;
+        query += ` AND (u.full_name ILIKE $${paramIndex} OR u.phone LIKE $${paramIndex} OR u.tckn LIKE $${paramIndex} OR u.passport_no LIKE $${paramIndex} OR u.foreign_id_no LIKE $${paramIndex})`;
         params.push(`%${search}%`);
         paramIndex++;
       }
 
       if (startDate) {
-        query += ` AND created_at >= $${paramIndex++}`;
+        query += ` AND u.created_at >= $${paramIndex++}`;
         params.push(startDate);
       }
 
       if (endDate) {
-        query += ` AND created_at <= $${paramIndex++}`;
+        query += ` AND u.created_at <= $${paramIndex++}`;
         params.push(endDate);
       }
 
-      query += ` ORDER BY created_at DESC LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
+      query += ` ORDER BY u.created_at DESC LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
       params.push(limit, offset);
 
       const result = await client.query(query, params);
 
-      // Toplam sayı
-      const countQuery = query.replace(/SELECT.*FROM/, 'SELECT COUNT(*) as total FROM').replace(/ORDER BY.*$/, '');
-      const countResult = await client.query(countQuery.replace(/LIMIT.*OFFSET.*$/, ''), params.slice(0, -2));
+      // Toplam sayı - COUNT için DISTINCT kullan
+      let countQuery = `
+        SELECT COUNT(DISTINCT u.phone) as total
+        FROM users u
+        ${onlineOnly === 'true' ? 'INNER JOIN sessions s ON u.phone = s.user_id' : ''}
+        WHERE 1=1
+      `;
+      const countParams = [];
+      let countParamIndex = 1;
+
+      if (onlineOnly === 'true') {
+        countQuery += ` AND s.status = 'active' AND s.start_time > NOW() - INTERVAL '5 minutes'`;
+      }
+
+      if (status) {
+        countQuery += ` AND u.status = $${countParamIndex++}`;
+        countParams.push(status);
+      }
+
+      if (pendingPassport === 'true') {
+        countQuery += ` AND u.id_type = 'passport' AND (u.status = 'pending' OR u.status = 'awaiting_admin_approval')`;
+      }
+
+      if (idType) {
+        countQuery += ` AND u.id_type = $${countParamIndex++}`;
+        countParams.push(idType);
+      }
+
+      if (search) {
+        countQuery += ` AND (u.full_name ILIKE $${countParamIndex} OR u.phone LIKE $${countParamIndex} OR u.tckn LIKE $${countParamIndex} OR u.passport_no LIKE $${countParamIndex} OR u.foreign_id_no LIKE $${countParamIndex})`;
+        countParams.push(`%${search}%`);
+        countParamIndex++;
+      }
+
+      if (startDate) {
+        countQuery += ` AND u.created_at >= $${countParamIndex++}`;
+        countParams.push(startDate);
+      }
+
+      if (endDate) {
+        countQuery += ` AND u.created_at <= $${countParamIndex++}`;
+        countParams.push(endDate);
+      }
+
+      const countResult = await client.query(countQuery, countParams);
 
       // Admin için telefon numarası maskelenmemiş döner (admin yetkili kullanıcı)
       // TCKN güvenlik nedeniyle hala maskelenmiş kalır
@@ -288,9 +317,9 @@ router.get('/users/:id', async (req, res, next) => {
                 COUNT(s.id) as session_count,
                 SUM(s.data_transferred_mb) as total_data_transferred
          FROM users u
-         LEFT JOIN sessions s ON u.id = s.user_id
-         WHERE u.id = $1
-         GROUP BY u.id`,
+         LEFT JOIN sessions s ON u.phone = s.user_id
+         WHERE u.phone = $1
+         GROUP BY u.phone`,
         [req.params.id]
       );
 
@@ -323,7 +352,7 @@ router.post('/users/:id/block', async (req, res, next) => {
     const client = await pool.connect();
     try {
       await client.query(
-        'UPDATE users SET status = $1, updated_at = NOW() WHERE id = $2',
+        'UPDATE users SET status = $1, updated_at = NOW() WHERE phone = $2',
         ['blocked', req.params.id]
       );
 
@@ -347,7 +376,7 @@ router.post('/users/:id/unblock', async (req, res, next) => {
     const client = await pool.connect();
     try {
       await client.query(
-        'UPDATE users SET status = $1, updated_at = NOW() WHERE id = $2',
+        'UPDATE users SET status = $1, updated_at = NOW() WHERE phone = $2',
         ['verified', req.params.id]
       );
 
@@ -368,7 +397,55 @@ router.post('/users/:id/unblock', async (req, res, next) => {
  */
 router.post('/users/:id/set-quota',
   [
-    body('quotaMb').optional().isInt({ min: 0 }).withMessage('Kota MB cinsinden pozitif bir sayı olmalıdır'),
+    body('quotaMb').optional({ nullable: true, checkFalsy: false }).custom((value) => {
+      console.log('[set-quota] quotaMb validation - received:', value, 'type:', typeof value, 'isNaN:', isNaN(value));
+      
+      // undefined, null veya boş string ise geç (optional olduğu için)
+      if (value === undefined || value === null || value === '') {
+        console.log('[set-quota] quotaMb is empty, skipping validation');
+        return true;
+      }
+      
+      // Number'a çevir
+      let numValue;
+      if (typeof value === 'string') {
+        // Boş string kontrolü
+        if (value.trim() === '') {
+          console.log('[set-quota] Empty string, skipping');
+          return true;
+        }
+        numValue = Number(value);
+        console.log('[set-quota] Converted string to number:', value, '->', numValue);
+      } else if (typeof value === 'number') {
+        numValue = value;
+      } else {
+        console.log('[set-quota] Invalid type:', typeof value);
+        throw new Error('Kota MB cinsinden pozitif bir sayı olmalıdır veya -1 (sınırsız)');
+      }
+      
+      // NaN kontrolü
+      if (isNaN(numValue)) {
+        console.log('[set-quota] NaN detected');
+        throw new Error('Kota MB cinsinden pozitif bir sayı olmalıdır veya -1 (sınırsız)');
+      }
+      
+      console.log('[set-quota] Final numValue:', numValue, 'type:', typeof numValue, 'is -1?', numValue === -1, 'is >= 0?', numValue >= 0);
+      
+      // -1 = sınırsız
+      if (numValue === -1) {
+        console.log('[set-quota] -1 detected, allowing unlimited');
+        return true;
+      }
+      
+      // Pozitif sayı kontrolü (0 dahil)
+      if (numValue >= 0) {
+        console.log('[set-quota] Valid positive number:', numValue);
+        return true;
+      }
+      
+      console.log('[set-quota] Validation FAILED - numValue:', numValue);
+      throw new Error('Kota MB cinsinden pozitif bir sayı olmalıdır veya -1 (sınırsız)');
+    }),
     body('speedLimitMbps').optional().isInt({ min: 1 }).withMessage('Hız limiti Mbps cinsinden pozitif bir sayı olmalıdır')
   ],
   async (req, res, next) => {
@@ -384,8 +461,13 @@ router.post('/users/:id/set-quota',
       let paramIndex = 1;
 
       if (quotaMb !== undefined) {
-        updates.push(`quota_mb = $${paramIndex++}`);
-        params.push(quotaMb);
+        // -1 = sınırsız (NULL olarak kaydedilir)
+        if (quotaMb === -1 || quotaMb === null) {
+          updates.push(`quota_mb = NULL`);
+        } else {
+          updates.push(`quota_mb = $${paramIndex++}`);
+          params.push(quotaMb);
+        }
       }
 
       if (speedLimitMbps !== undefined) {
@@ -403,7 +485,7 @@ router.post('/users/:id/set-quota',
       const client = await pool.connect();
       try {
         await client.query(
-          `UPDATE users SET ${updates.join(', ')} WHERE id = $${paramIndex}`,
+          `UPDATE users SET ${updates.join(', ')} WHERE phone = $${paramIndex}`,
           params
         );
 
@@ -436,7 +518,7 @@ router.post('/users/:id/verify-manual', async (req, res, next) => {
          SET status = 'verified', 
              connection_start_time = NOW(),
              updated_at = NOW()
-         WHERE id = $1`,
+         WHERE phone = $1`,
         [req.params.id]
       );
 
@@ -463,7 +545,7 @@ router.post('/users/:id/approve', async (req, res, next) => {
         `UPDATE users 
          SET status = 'active', 
              updated_at = NOW()
-         WHERE id = $1 AND id_type = 'passport'`,
+         WHERE phone = $1 AND id_type = 'passport'`,
         [req.params.id]
       );
 
@@ -490,7 +572,7 @@ router.post('/users/:id/reject', async (req, res, next) => {
         `UPDATE users 
          SET status = 'blocked', 
              updated_at = NOW()
-         WHERE id = $1 AND id_type = 'passport'`,
+         WHERE phone = $1 AND id_type = 'passport'`,
         [req.params.id]
       );
 
@@ -513,17 +595,73 @@ router.put('/users/:id',
   [
     body('fullName').optional().trim().isLength({ min: 3, max: 255 }).withMessage('Ad Soyad 3-255 karakter arasında olmalıdır'),
     body('phone').optional().matches(/^[0-9]{10,11}$/).withMessage('Geçerli bir telefon numarası giriniz'),
-    body('password').optional().isLength({ min: 6 }).withMessage('Şifre en az 6 karakter olmalıdır'),
+    body('password').optional().isLength({ min: 8 }).withMessage('Şifre en az 8 karakter olmalıdır')
+      .optional().matches(/[A-Z]/).withMessage('Şifre en az bir büyük harf içermelidir')
+      .optional().matches(/[a-z]/).withMessage('Şifre en az bir küçük harf içermelidir')
+      .optional().matches(/[0-9]/).withMessage('Şifre en az bir rakam içermelidir')
+      .optional().matches(/[!@#$%^&*(),.?":{}|<>]/).withMessage('Şifre en az bir özel karakter içermelidir'),
     body('passportNo').optional().isLength({ min: 5, max: 50 }).withMessage('Pasaport numarası 5-50 karakter arasında olmalıdır'),
     body('foreignIdNo').optional().isLength({ min: 5, max: 50 }).withMessage('Yabancı kimlik numarası 5-50 karakter arasında olmalıdır'),
     body('status').optional().isIn(['pending', 'verified', 'active', 'blocked', 'expired', 'awaiting_admin_approval']).withMessage('Geçerli bir durum seçiniz'),
-    body('quotaMb').optional().isInt({ min: 0 }).withMessage('Kota MB cinsinden pozitif bir sayı olmalıdır'),
+    body('quotaMb')
+      .optional({ nullable: true, checkFalsy: false })
+      .custom((value) => {
+        console.log('[PUT /users/:id] quotaMb validation - received:', value, 'type:', typeof value);
+        
+        // undefined, null veya boş string ise geç (optional olduğu için)
+        if (value === undefined || value === null || value === '') {
+          console.log('[PUT /users/:id] quotaMb is empty, skipping validation');
+          return true;
+        }
+        
+        // Number'a çevir
+        let numValue;
+        if (typeof value === 'string') {
+          // Boş string kontrolü
+          if (value.trim() === '') {
+            console.log('[PUT /users/:id] Empty string, skipping');
+            return true;
+          }
+          numValue = Number(value);
+          console.log('[PUT /users/:id] Converted string to number:', value, '->', numValue);
+        } else if (typeof value === 'number') {
+          numValue = value;
+        } else {
+          console.log('[PUT /users/:id] Invalid type:', typeof value);
+          throw new Error('Kota MB cinsinden pozitif bir sayı olmalıdır veya -1 (sınırsız)');
+        }
+        
+        // NaN kontrolü
+        if (isNaN(numValue)) {
+          console.log('[PUT /users/:id] NaN detected');
+          throw new Error('Kota MB cinsinden pozitif bir sayı olmalıdır veya -1 (sınırsız)');
+        }
+        
+        console.log('[PUT /users/:id] Final numValue:', numValue, 'type:', typeof numValue, 'is -1?', numValue === -1, 'is >= 0?', numValue >= 0);
+        
+        // -1 = sınırsız
+        if (numValue === -1) {
+          console.log('[PUT /users/:id] -1 detected, allowing unlimited');
+          return true;
+        }
+        
+        // Pozitif sayı kontrolü (0 dahil)
+        if (numValue >= 0) {
+          console.log('[PUT /users/:id] Valid positive number:', numValue);
+          return true;
+        }
+        
+        console.log('[PUT /users/:id] Validation FAILED - numValue:', numValue);
+        throw new Error('Kota MB cinsinden pozitif bir sayı olmalıdır veya -1 (sınırsız)');
+      }),
     body('speedLimitMbps').optional().isInt({ min: 1 }).withMessage('Hız limiti Mbps cinsinden pozitif bir sayı olmalıdır')
   ],
   async (req, res, next) => {
     try {
+      console.log('[PUT /users/:id] Request body:', JSON.stringify(req.body));
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
+        console.log('[PUT /users/:id] Validation errors:', JSON.stringify(errors.array(), null, 2));
         return res.status(400).json({ errors: errors.array() });
       }
 
@@ -560,8 +698,13 @@ router.put('/users/:id',
         params.push(status);
       }
       if (quotaMb !== undefined) {
-        updates.push(`quota_mb = $${paramIndex++}`);
-        params.push(quotaMb);
+        // -1 = sınırsız (NULL olarak kaydedilir)
+        if (quotaMb === -1 || quotaMb === null) {
+          updates.push(`quota_mb = NULL`);
+        } else {
+          updates.push(`quota_mb = $${paramIndex++}`);
+          params.push(quotaMb);
+        }
       }
       if (speedLimitMbps !== undefined) {
         updates.push(`speed_limit_mbps = $${paramIndex++}`);
@@ -578,7 +721,7 @@ router.put('/users/:id',
       const client = await pool.connect();
       try {
         await client.query(
-          `UPDATE users SET ${updates.join(', ')} WHERE id = $${paramIndex}`,
+          `UPDATE users SET ${updates.join(', ')} WHERE phone = $${paramIndex}`,
           params
         );
 
@@ -703,8 +846,13 @@ router.get('/immutable-logs', requireAdmin, async (req, res, next) => {
       limit = 100, 
       userId, 
       internalIp, 
-      externalIp, 
+      externalIp,
+      sourceIp,
+      destinationIp,
+      sourcePort,
+      destinationPort,
       macAddress,
+      protocol,
       startDate, 
       endDate,
       dateRangeStart,
@@ -720,7 +868,12 @@ router.get('/immutable-logs', requireAdmin, async (req, res, next) => {
       userId: userId ? parseInt(userId) : null,
       internalIp,
       externalIp,
+      sourceIp,
+      destinationIp,
+      sourcePort: sourcePort ? parseInt(sourcePort) : null,
+      destinationPort: destinationPort ? parseInt(destinationPort) : null,
       macAddress,
+      protocol,
       startDate,
       endDate,
       dateRange: (dateRangeStart && dateRangeEnd) ? {
@@ -1094,15 +1247,34 @@ router.put('/settings',
 
       const client = await pool.connect();
       try {
-        const updates = Object.keys(req.body);
+        // Güvenlik: Sadece izin verilen ayar anahtarları güncellenebilir
+        const allowedSettings = [
+          'inactive_timeout_hours',
+          'max_session_hours',
+          'theme',
+          'quota_mb',
+          'speed_limit_mbps'
+        ];
+        
+        const updates = Object.keys(req.body).filter(key => allowedSettings.includes(key));
+        
+        if (updates.length === 0) {
+          return res.status(400).json({ error: 'Geçersiz ayar anahtarı' });
+        }
         
         for (const key of updates) {
+          // Input validation
+          const value = req.body[key];
+          if (typeof value !== 'string' && typeof value !== 'number') {
+            return res.status(400).json({ error: `Geçersiz değer tipi: ${key}` });
+          }
+          
           await client.query(
             `INSERT INTO settings (key, value, updated_by) 
              VALUES ($1, $2, $3)
              ON CONFLICT (key) 
              DO UPDATE SET value = $2, updated_by = $3, updated_at = NOW()`,
-            [key, req.body[key].toString(), req.admin.id]
+            [key, value.toString(), req.admin.id]
           );
         }
 
@@ -1148,7 +1320,7 @@ router.get('/admins', async (req, res, next) => {
 router.post('/admins',
   [
     body('email').isEmail().withMessage('Geçerli bir e-posta adresi giriniz'),
-    body('password').isLength({ min: 6 }).withMessage('Şifre en az 6 karakter olmalıdır'),
+    ...passwordValidator,
     body('role').optional().isIn(['admin', 'super_admin']).withMessage('Geçerli bir rol seçiniz')
   ],
   async (req, res, next) => {
@@ -1202,7 +1374,7 @@ router.post('/admins',
  */
 router.put('/admins/:id/password',
   [
-    body('password').isLength({ min: 6 }).withMessage('Şifre en az 6 karakter olmalıdır')
+    ...passwordValidator
   ],
   async (req, res, next) => {
     try {

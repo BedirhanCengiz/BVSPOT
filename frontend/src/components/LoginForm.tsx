@@ -5,7 +5,6 @@ import { useForm } from 'react-hook-form';
 import { authAPI } from '@/lib/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { t } from '@/lib/i18n';
-import { LogIn } from 'lucide-react';
 import { getMacAddressAuto } from '@/utils/macAddress';
 import PhoneInput from '@/components/PhoneInput';
 
@@ -63,12 +62,14 @@ export default function LoginForm({ idType, onSuccess, onBack }: LoginFormProps)
   };
 
   return (
-    <div className="glass-strong rounded-3xl shadow-2xl p-5 animate-fade-in hover-lift">
+    <div className="glass-strong rounded-3xl shadow-2xl p-5 animate-fade-in hover-lift relative z-50" style={{ pointerEvents: 'auto' }}>
       <div className="text-center mb-4">
         <div className="flex justify-center mb-2">
-          <div className="bg-gradient-to-br from-primary-500 to-purple-600 p-3 rounded-2xl shadow-glow animate-float">
-            <LogIn className="w-8 h-8 text-white" />
-          </div>
+          <img 
+            src="/assets/bvspot_logo_metalic.png" 
+            alt="BVSPOT Logo" 
+            className="h-12 w-auto"
+          />
         </div>
         <h1 className="text-2xl font-extrabold gradient-text mb-1 animate-slide-down">
           {t('loginToInternet', language)}
@@ -78,7 +79,7 @@ export default function LoginForm({ idType, onSuccess, onBack }: LoginFormProps)
         </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 animate-fade-in">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 animate-fade-in relative z-50" style={{ pointerEvents: 'auto' }}>
         {/* Telefon */}
         <div className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
           <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center gap-1">
@@ -116,7 +117,7 @@ export default function LoginForm({ idType, onSuccess, onBack }: LoginFormProps)
           />
           {errors.password && (
             <p className="mt-1 text-xs text-red-600 flex items-center gap-1 animate-slide-down">
-              <span>⚠️</span> {errors.password.message}
+              <span>⚠</span> {errors.password.message}
             </p>
           )}
         </div>
@@ -135,7 +136,8 @@ export default function LoginForm({ idType, onSuccess, onBack }: LoginFormProps)
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-gradient-to-r from-primary-600 to-purple-600 text-white py-2.5 rounded-xl font-bold text-sm shadow-lg hover:shadow-xl hover:scale-[1.02] focus:outline-none focus:ring-4 focus:ring-primary-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 relative overflow-hidden btn-glow group"
+          className="w-full bg-gradient-to-r from-primary-600 to-purple-600 text-white py-2.5 rounded-xl font-bold text-sm shadow-lg hover:shadow-xl hover:scale-[1.02] focus:outline-none focus:ring-4 focus:ring-primary-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 relative overflow-hidden btn-glow group cursor-pointer z-50"
+          style={{ pointerEvents: loading ? 'none' : 'auto' }}
         >
           <span className="relative z-10 flex items-center justify-center gap-2">
             {loading ? (
@@ -161,9 +163,10 @@ export default function LoginForm({ idType, onSuccess, onBack }: LoginFormProps)
         <button
           type="button"
           onClick={onBack}
-          className="w-full border-2 border-gray-300 text-gray-700 py-2.5 rounded-xl font-semibold text-sm hover:bg-white/80 hover:border-primary-300 hover:scale-[1.02] transition-all duration-300 shadow-md hover:shadow-lg"
+          className="w-full border-2 border-gray-300 text-gray-700 py-2.5 rounded-xl font-semibold text-sm hover:bg-white/80 hover:border-primary-300 hover:scale-[1.02] transition-all duration-300 shadow-md hover:shadow-lg cursor-pointer z-50"
+          style={{ pointerEvents: 'auto' }}
         >
-          ← {t('back', language)}
+          &larr; {t('back', language)}
         </button>
       </form>
     </div>

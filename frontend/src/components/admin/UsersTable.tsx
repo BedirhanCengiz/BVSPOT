@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { Ban, CheckCircle, Eye, Edit, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { useForm } from 'react-hook-form';
@@ -27,7 +27,8 @@ interface EditFormData {
   passportNo?: string;
   foreignIdNo?: string;
   status: string;
-  quotaMb: number;
+  quotaMb: number | null;
+  unlimitedQuota: boolean;
   speedLimitMbps: number;
 }
 
@@ -44,8 +45,9 @@ export default function UsersTable({
   const { language } = useLanguage();
   const [editingUser, setEditingUser] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
-  const { register, handleSubmit, formState: { errors }, reset, watch } = useForm<EditFormData>();
+  const { register, handleSubmit, formState: { errors }, reset, watch, setValue } = useForm<EditFormData>();
   const password = watch('password');
+  const unlimitedQuota = watch('unlimitedQuota');
 
   // Modal açıldığında body scroll'unu engelle
   useEffect(() => {
@@ -60,6 +62,7 @@ export default function UsersTable({
   }, [editingUser]);
   const handleEditClick = (user: any) => {
     setEditingUser(user);
+    const isUnlimited = user.quota_mb === null || user.quota_mb === -1;
     reset({
       fullName: user.full_name,
       phone: user.phone,
@@ -68,7 +71,8 @@ export default function UsersTable({
       passportNo: user.passport_no || '',
       foreignIdNo: user.foreign_id_no || '',
       status: user.status,
-      quotaMb: user.quota_mb || 1000,
+      quotaMb: isUnlimited ? 1000 : (user.quota_mb || 1000),
+      unlimitedQuota: isUnlimited,
       speedLimitMbps: user.speed_limit_mbps || 10,
     });
   };
@@ -90,13 +94,18 @@ export default function UsersTable({
     setLoading(true);
     try {
       // Backend'e gönderilecek veriyi hazırla
+      const quotaValue = data.unlimitedQuota ? -1 : data.quotaMb;
+      console.log('[Frontend] Sending quotaMb:', quotaValue, 'unlimitedQuota:', data.unlimitedQuota, 'quotaMb:', data.quotaMb);
+      
       const updateData: any = {
         fullName: data.fullName,
         phone: data.phone,
         status: data.status,
-        quotaMb: data.quotaMb,
+        quotaMb: quotaValue, // -1 = sınırsız
         speedLimitMbps: data.speedLimitMbps,
       };
+      
+      console.log('[Frontend] Full updateData:', JSON.stringify(updateData));
 
       // Şifre varsa ekle
       if (data.password) {
@@ -110,12 +119,32 @@ export default function UsersTable({
         updateData.foreignIdNo = data.foreignIdNo;
       }
 
-      await adminAPI.updateUser(editingUser.id, updateData);
+      // User ID artık phone numarası
+      const userId = editingUser.phone || editingUser.id;
+      console.log('[Frontend] Updating user with ID (phone):', userId);
+      await adminAPI.updateUser(userId, updateData);
       setEditingUser(null);
       if (onEdit) onEdit();
       alert(t('success', language));
     } catch (error: any) {
-      const errorMessage = error.response?.data?.error || error.response?.data?.errors?.[0]?.msg || 'Güncelleme başarısız';
+      console.error('Update user error:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Error response errors:', error.response?.data?.errors);
+      
+      let errorMessage = 'Güncelleme başarısız';
+      if (error.response?.data) {
+        // Express-validator format: { errors: [{ msg: '...', param: '...' }] }
+        if (error.response.data.errors && Array.isArray(error.response.data.errors) && error.response.data.errors.length > 0) {
+          const firstError = error.response.data.errors[0];
+          errorMessage = firstError.msg || firstError.message || firstError || errorMessage;
+          console.log('Extracted error message:', errorMessage, 'from error:', firstError);
+        } else if (error.response.data.error) {
+          errorMessage = error.response.data.error;
+        } else if (typeof error.response.data === 'string') {
+          errorMessage = error.response.data;
+        }
+      }
+      console.log('Final error message to show:', errorMessage);
       alert(errorMessage);
     } finally {
       setLoading(false);
@@ -206,7 +235,7 @@ export default function UsersTable({
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">
                   <div className="text-sm text-gray-900 dark:text-slate-100">
-                    {user.quota_used_mb || 0} / {user.quota_mb || 0} MB
+                    {user.quota_used_mb || 0} / {user.quota_mb === null || user.quota_mb === -1 ? t('unlimited', language) : `${user.quota_mb || 0} MB`}
                   </div>
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">
@@ -464,17 +493,43 @@ export default function UsersTable({
                   <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                     {t('quotaLabel', language)}
                   </label>
-                  <input
-                    type="number"
-                    {...register('quotaMb', { 
-                      required: t('quotaRequired', language),
-                      min: { value: 0, message: t('quotaMin', language) }
-                    })}
-                    className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-700 transition-all duration-200 text-sm"
-                  />
-                  {errors.quotaMb && (
-                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.quotaMb.message}</p>
-                  )}
+                  <div className="space-y-2">
+                    <div className="flex items-center mb-2">
+                      <input
+                        type="checkbox"
+                        {...register('unlimitedQuota')}
+                        onChange={(e) => {
+                          setValue('unlimitedQuota', e.target.checked);
+                          if (e.target.checked) {
+                            setValue('quotaMb', 1000); // Placeholder value
+                          }
+                        }}
+                        className="w-4 h-4 text-indigo-600 bg-gray-100 border-gray-300 rounded focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                      />
+                      <label className="ml-2 text-sm font-medium text-gray-700 dark:text-slate-300 cursor-pointer">
+                        {t('unlimitedQuota', language)}
+                      </label>
+                    </div>
+                    <input
+                      type="number"
+                      {...register('quotaMb', { 
+                        required: !unlimitedQuota ? t('quotaRequired', language) : false,
+                        min: { value: 0, message: t('quotaMin', language) },
+                        validate: (value) => {
+                          if (unlimitedQuota) return true;
+                          return value > 0 || t('quotaMin', language);
+                        }
+                      })}
+                      disabled={unlimitedQuota}
+                      className={`w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-700 transition-all duration-200 text-sm ${
+                        unlimitedQuota ? 'opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-800' : ''
+                      }`}
+                      placeholder={unlimitedQuota ? t('unlimited', language) : ''}
+                    />
+                    {errors.quotaMb && (
+                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.quotaMb.message}</p>
+                    )}
+                  </div>
                 </div>
 
                 <div>

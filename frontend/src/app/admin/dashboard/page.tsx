@@ -31,23 +31,21 @@ export default function AdminDashboard() {
 
   const loadDashboard = async () => {
     try {
-      console.log('Dashboard yükleniyor...');
-      const token = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null;
-      console.log('Admin token:', token ? 'Mevcut' : 'Yok');
-      
       const response = await adminAPI.getDashboard();
-      console.log('Dashboard yüklendi:', response.data);
       setStats(response.data);
       setError(null);
     } catch (err: any) {
-      console.error('Dashboard yükleme hatası:', err);
-      console.error('Hata detayları:', {
-        code: err.code,
-        message: err.message,
-        response: err.response?.data,
-        status: err.response?.status,
-        networkError: err.networkError
-      });
+      // Hataları sadece development'ta logla
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Dashboard yükleme hatası:', err);
+        console.error('Hata detayları:', {
+          code: err.code,
+          message: err.message,
+          response: err.response?.data,
+          status: err.response?.status,
+          networkError: err.networkError
+        });
+      }
       
       // Network error kontrolü
       if (err.code === 'ECONNREFUSED' || err.message === 'Network Error' || err.code === 'ERR_NETWORK' || !err.response || err.networkError) {
@@ -56,7 +54,6 @@ export default function AdminDashboard() {
       }
       
       if (err.response?.status === 401) {
-        console.log('401 hatası - login sayfasına yönlendiriliyor');
         router.push('/admin/login');
         return;
       }
@@ -69,7 +66,6 @@ export default function AdminDashboard() {
       
       const errorMessage = err.response?.data?.error || err.message || 'Dashboard yüklenirken bir hata oluştu';
       setError(`${errorMessage} (Status: ${err.response?.status || 'N/A'})`);
-      console.error('Detaylı hata:', err.response?.data);
     } finally {
       setLoading(false);
     }
