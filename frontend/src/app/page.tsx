@@ -100,7 +100,7 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-2 relative overflow-hidden">
+    <main className="min-h-screen flex items-center justify-center p-2 sm:p-4 md:p-6 lg:p-8 relative overflow-hidden">
       {/* SSID bazlı arkaplan veya varsayılan animasyonlu arkaplan */}
       {backgroundImageUrl ? (
         <div 
@@ -113,17 +113,17 @@ export default function Home() {
         </div>
       ) : (
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-20 left-20 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-float"></div>
-          <div className="absolute top-40 right-20 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-float" style={{ animationDelay: '2s' }}></div>
-          <div className="absolute bottom-20 left-1/2 w-72 h-72 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-float" style={{ animationDelay: '4s' }}></div>
+          <div className="absolute top-10 sm:top-20 left-2 sm:left-4 md:left-20 w-24 h-24 sm:w-48 sm:h-48 md:w-72 md:h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-float"></div>
+          <div className="absolute top-20 sm:top-40 right-2 sm:right-4 md:right-20 w-24 h-24 sm:w-48 sm:h-48 md:w-72 md:h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-float" style={{ animationDelay: '2s' }}></div>
+          <div className="absolute bottom-10 sm:bottom-20 left-1/2 transform -translate-x-1/2 w-24 h-24 sm:w-48 sm:h-48 md:w-72 md:h-72 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-float" style={{ animationDelay: '4s' }}></div>
         </div>
       )}
 
-      <div className="absolute top-4 right-4 z-20">
+      <div className="absolute top-2 right-2 sm:top-4 sm:right-4 md:top-6 md:right-6 z-20">
         <LanguageSwitcher />
       </div>
       
-      <div className="w-full max-w-md relative z-10 flex items-center justify-center min-h-[calc(100vh-1rem)]">
+      <div className="w-full max-w-md px-2 sm:px-4 md:px-6 relative z-10 flex items-center justify-center min-h-[calc(100vh-1rem)] sm:min-h-[calc(100vh-2rem)] py-2 sm:py-4 md:py-6">
         {step === 'menu' && (
           <MainMenu onSelect={handleMenuSelection} />
         )}

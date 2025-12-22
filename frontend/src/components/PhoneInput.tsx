@@ -115,29 +115,29 @@ export default function PhoneInput({
           <button
             type="button"
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className={`flex items-center gap-1.5 px-2.5 py-2 border-2 border-gray-200 ${className?.includes('rounded-lg') ? 'rounded-lg' : 'rounded-xl'} focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white hover:border-primary-300 transition-all duration-300 text-xs min-w-[75px]`}
+            className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 sm:py-2 border-2 border-gray-200 ${className?.includes('rounded-lg') ? 'rounded-lg' : 'rounded-lg'} focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white hover:border-primary-300 transition-all duration-300 text-[10px] sm:text-xs min-w-[65px] sm:min-w-[75px] active:scale-95 min-h-[44px] sm:min-h-[48px]`}
           >
-            <span className="text-xl leading-none inline-block" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, Segoe UI Symbol, sans-serif', fontSize: '1.25rem', lineHeight: '1' }}>{selectedCountry.flag}</span>
-            <span className="text-gray-700 font-medium text-xs">{selectedCountry.dialCode}</span>
-            <ChevronDown className={`w-3 h-3 text-gray-500 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+            <span className="text-base sm:text-lg leading-none inline-block flex-shrink-0" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, Segoe UI Symbol, sans-serif', fontSize: '1rem', lineHeight: '1' }}>{selectedCountry.flag}</span>
+            <span className="text-gray-700 font-medium text-[10px] sm:text-xs hidden xs:inline">{selectedCountry.dialCode}</span>
+            <ChevronDown className={`w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-500 transition-transform flex-shrink-0 ${isDropdownOpen ? 'rotate-180' : ''}`} />
           </button>
 
           {/* Dropdown */}
           {isDropdownOpen && (
-            <div className="absolute top-full left-0 mt-1 bg-white border-2 border-gray-200 rounded-lg shadow-xl z-50 max-h-56 overflow-y-auto w-56">
-              <div className="p-1.5">
+            <div className="absolute top-full left-0 mt-1.5 sm:mt-2 bg-white border-2 border-gray-200 rounded-lg shadow-xl z-50 max-h-64 sm:max-h-72 overflow-y-auto w-48 sm:w-56 md:w-64">
+              <div className="p-1 sm:p-1.5">
                 {countries.map((country) => (
                   <button
                     key={country.code}
                     type="button"
                     onClick={() => handleCountrySelect(country)}
-                    className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-gray-50 transition-colors text-left ${
+                    className={`w-full flex items-center gap-1.5 sm:gap-2 px-2 sm:px-2.5 py-1.5 sm:py-2 rounded-md hover:bg-gray-50 active:bg-gray-100 transition-colors text-left min-h-[40px] ${
                       selectedCountry.code === country.code ? 'bg-primary-50' : ''
                     }`}
                   >
-                    <span className="text-xl leading-none flex-shrink-0 inline-block" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, Segoe UI Symbol, sans-serif', fontSize: '1.25rem', lineHeight: '1' }}>{country.flag}</span>
-                    <span className="flex-1 text-xs text-gray-700 truncate">{t(country.nameKey, language)}</span>
-                    <span className="text-xs text-gray-500 font-medium flex-shrink-0">{country.dialCode}</span>
+                    <span className="text-base sm:text-lg leading-none flex-shrink-0 inline-block" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, Segoe UI Symbol, sans-serif', fontSize: '1rem', lineHeight: '1' }}>{country.flag}</span>
+                    <span className="flex-1 text-[10px] sm:text-xs text-gray-700 truncate">{t(country.nameKey, language)}</span>
+                    <span className="text-[10px] sm:text-xs text-gray-500 font-medium flex-shrink-0">{country.dialCode}</span>
                   </button>
                 ))}
               </div>
@@ -146,24 +146,24 @@ export default function PhoneInput({
         </div>
 
         {/* Telefon Numarası Input */}
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <input
             type="tel"
             {...register}
             onChange={handlePhoneChange}
             defaultValue={defaultValue}
-            className={`w-full border-2 border-gray-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900 bg-white transition-all duration-300 input-focus-glow hover:border-primary-300 text-sm ${error ? 'border-red-300' : ''} ${
+            className={`w-full border-2 border-gray-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900 bg-white transition-all duration-300 input-focus-glow hover:border-primary-300 text-sm sm:text-base min-h-[44px] sm:min-h-[48px] ${error ? 'border-red-300' : ''} ${
               className?.includes('px-3') 
-                ? 'px-3 py-2 rounded-lg' 
+                ? 'px-3 py-2 sm:py-2.5 rounded-lg' 
                 : className?.includes('rounded-lg')
-                ? 'px-4 py-2.5 rounded-lg'
-                : 'px-4 py-2.5 rounded-xl'
+                ? 'px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg'
+                : 'px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg'
             }`}
             placeholder={placeholder}
             maxLength={11}
           />
           {error && (
-            <p className="mt-1 text-xs text-red-600 flex items-center gap-1 animate-slide-down">
+            <p className="mt-1 text-xs sm:text-sm text-red-600 flex items-center gap-1 animate-slide-down break-words">
               <span>⚠️</span> {error}
             </p>
           )}

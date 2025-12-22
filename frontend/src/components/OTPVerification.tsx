@@ -121,26 +121,26 @@ export default function OTPVerification({
   const maskedPhone = phone.substring(0, 4) + '***' + phone.substring(7);
 
   return (
-    <div className="glass-strong rounded-3xl shadow-2xl p-5 animate-fade-in hover-lift">
-      <div className="text-center mb-4">
-        <div className="flex justify-center mb-2">
-          <div className="bg-gradient-to-br from-primary-500 to-purple-600 p-3 rounded-2xl shadow-glow animate-float">
-            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div className="glass-strong rounded-2xl sm:rounded-3xl shadow-2xl p-3 sm:p-5 md:p-6 lg:p-8 animate-fade-in hover-lift w-full max-w-full">
+      <div className="text-center mb-3 sm:mb-4 md:mb-5">
+        <div className="flex justify-center mb-2 sm:mb-3">
+          <div className="bg-gradient-to-br from-primary-500 to-purple-600 p-2 sm:p-2.5 md:p-3 rounded-lg sm:rounded-xl md:rounded-2xl shadow-glow animate-float">
+            <svg className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
           </div>
         </div>
-        <h1 className="text-2xl font-extrabold gradient-text mb-1 animate-slide-down">
+        <h1 className="text-base sm:text-lg md:text-xl lg:text-2xl font-extrabold gradient-text mb-1 sm:mb-2 animate-slide-down px-2">
           {t('verificationCode', language)}
         </h1>
-        <p className="text-gray-600 text-sm animate-slide-up">
-          {t('otpSentTo', language)} <span className="font-semibold text-gray-800">{maskedPhone}</span>
+        <p className="text-gray-600 text-[10px] sm:text-xs md:text-sm animate-slide-up px-2 sm:px-4">
+          {t('otpSentTo', language)} <span className="font-semibold text-gray-800 break-all">{maskedPhone}</span>
         </p>
       </div>
 
-      <div className="space-y-3 animate-fade-in">
+      <div className="space-y-2.5 sm:space-y-3 md:space-y-4 animate-fade-in">
         {/* OTP Input */}
-        <div className="flex justify-center gap-2 animate-slide-up">
+        <div className="flex justify-center gap-1.5 sm:gap-2 md:gap-2.5 animate-slide-up px-2 sm:px-4">
           {code.map((digit, index) => (
             <input
               key={index}
@@ -151,7 +151,7 @@ export default function OTPVerification({
               value={digit}
               onChange={(e) => handleCodeChange(index, e.target.value)}
               onKeyDown={(e) => handleKeyDown(index, e)}
-              className={`w-11 h-12 text-center text-2xl font-bold border-2 rounded-lg focus:ring-4 focus:ring-primary-300 focus:border-primary-500 text-gray-900 bg-white transition-all duration-300 input-focus-glow hover:border-primary-400 hover:scale-105 ${
+              className={`w-10 h-12 sm:w-12 sm:h-14 md:w-14 md:h-16 text-center text-xl sm:text-2xl md:text-3xl font-bold border-2 rounded-lg focus:ring-2 focus:ring-primary-300 focus:border-primary-500 text-gray-900 bg-white transition-all duration-300 input-focus-glow hover:border-primary-400 hover:scale-105 active:scale-95 ${
                 digit ? 'border-primary-500 bg-primary-50 shadow-lg' : 'border-gray-300'
               }`}
               disabled={loading}
@@ -162,15 +162,15 @@ export default function OTPVerification({
 
         {/* Hata Mesajı */}
         {error && (
-          <div className="bg-gradient-to-r from-red-50 to-red-100 border-2 border-red-300 text-red-700 px-3 py-2 rounded-lg shadow-lg text-center animate-slide-down flex flex-col items-center gap-1">
-            <div className="flex items-center gap-1">
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+          <div className="bg-gradient-to-r from-red-50 to-red-100 border-2 border-red-300 text-red-700 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg shadow-lg text-center animate-slide-down flex flex-col items-center gap-1.5 sm:gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
               </svg>
-              <span className="font-medium text-xs">{error}</span>
+              <span className="font-medium text-xs sm:text-sm break-words">{error}</span>
             </div>
             {attemptsLeft !== null && (
-              <p className="text-xs font-semibold bg-red-200 px-2 py-0.5 rounded-full">
+              <p className="text-xs sm:text-sm font-semibold bg-red-200 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full">
                 {t('attemptsLeft', language)}: {attemptsLeft}
               </p>
             )}
@@ -182,7 +182,7 @@ export default function OTPVerification({
           <button
             onClick={sendOTP}
             disabled={sendingOTP || countdown > 0}
-            className="text-primary-600 hover:text-primary-700 font-semibold text-xs disabled:text-gray-400 disabled:cursor-not-allowed transition-all duration-300 hover:scale-105 flex items-center gap-1 mx-auto"
+            className="text-primary-600 hover:text-primary-700 font-semibold text-xs sm:text-sm disabled:text-gray-400 disabled:cursor-not-allowed transition-all duration-300 hover:scale-105 active:scale-95 flex items-center gap-1.5 sm:gap-2 mx-auto"
           >
             {sendingOTP ? (
               <>
@@ -211,31 +211,31 @@ export default function OTPVerification({
         </div>
 
         {/* Butonlar */}
-        <div className="flex gap-2 animate-slide-up" style={{ animationDelay: '0.3s' }}>
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-2.5 md:gap-3 animate-slide-up" style={{ animationDelay: '0.3s' }}>
           <button
             onClick={onBack}
-            className="flex-1 border-2 border-gray-300 text-gray-700 py-2.5 rounded-xl font-semibold text-sm hover:bg-white/80 hover:border-primary-300 hover:scale-[1.02] transition-all duration-300 shadow-md hover:shadow-lg"
+            className="flex-1 border-2 border-gray-300 text-gray-700 py-2.5 sm:py-3 rounded-lg font-semibold text-xs sm:text-sm hover:bg-white/80 hover:border-primary-300 hover:scale-[1.02] active:scale-95 transition-all duration-300 shadow-md hover:shadow-lg min-h-[44px] sm:min-h-[48px]"
           >
             ← {t('back', language)}
           </button>
           <button
             onClick={() => verifyOTP()}
             disabled={loading || code.some((c) => !c)}
-            className="flex-1 bg-gradient-to-r from-primary-600 to-purple-600 text-white py-2.5 rounded-xl font-bold text-sm hover:shadow-xl hover:scale-[1.02] focus:outline-none focus:ring-4 focus:ring-primary-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all duration-300 relative overflow-hidden btn-glow group"
+            className="flex-1 bg-gradient-to-r from-primary-600 to-purple-600 text-white py-2.5 sm:py-3 rounded-lg font-bold text-xs sm:text-sm hover:shadow-xl hover:scale-[1.02] active:scale-95 focus:outline-none focus:ring-4 focus:ring-primary-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all duration-300 relative overflow-hidden btn-glow group min-h-[44px] sm:min-h-[48px]"
           >
-            <span className="relative z-10 flex items-center justify-center gap-2">
+            <span className="relative z-10 flex items-center justify-center gap-2 sm:gap-2.5">
               {loading ? (
                 <>
-                  <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                  <svg className="animate-spin h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  {t('verifying', language)}
+                  <span>{t('verifying', language)}</span>
                 </>
               ) : (
                 <>
                   {t('verify', language)}
-                  <svg className="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </>

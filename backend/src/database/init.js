@@ -5,10 +5,11 @@ export async function initializeDatabase() {
   const client = await pool.connect();
   
   try {
-    // Users table - phone as primary key
+    // Users table - id as primary key, phone as BIGINT
     await client.query(`
       CREATE TABLE IF NOT EXISTS users (
-        phone VARCHAR(20) PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
+        phone BIGINT NOT NULL UNIQUE,
         full_name VARCHAR(255) NOT NULL,
         tckn VARCHAR(11),
         passport_no VARCHAR(50),
@@ -39,7 +40,7 @@ export async function initializeDatabase() {
     await client.query(`
       CREATE TABLE IF NOT EXISTS otp_codes (
         id SERIAL PRIMARY KEY,
-        phone VARCHAR(20) NOT NULL,
+        phone BIGINT NOT NULL,
         code VARCHAR(6) NOT NULL,
         attempts INTEGER DEFAULT 0,
         expires_at TIMESTAMP NOT NULL,
@@ -52,7 +53,7 @@ export async function initializeDatabase() {
     await client.query(`
       CREATE TABLE IF NOT EXISTS sessions (
         id SERIAL PRIMARY KEY,
-        user_id VARCHAR(20) REFERENCES users(phone) ON DELETE CASCADE,
+        user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
         mac_address VARCHAR(17),
         internal_ip VARCHAR(45), -- İç IP (DHCP)
         external_ip VARCHAR(45), -- Dış IP (NAT sonrası)
@@ -70,7 +71,7 @@ export async function initializeDatabase() {
     await client.query(`
       CREATE TABLE IF NOT EXISTS logs (
         id SERIAL PRIMARY KEY,
-        user_id VARCHAR(20) REFERENCES users(phone) ON DELETE SET NULL,
+        user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
         action VARCHAR(100) NOT NULL,
         ip_address VARCHAR(45),
         mac_address VARCHAR(17),
@@ -108,7 +109,7 @@ export async function initializeDatabase() {
     await client.query(`
       CREATE TABLE IF NOT EXISTS web_traffic_logs (
         id SERIAL PRIMARY KEY,
-        user_id VARCHAR(20) REFERENCES users(phone) ON DELETE SET NULL,
+        user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
         session_id INTEGER REFERENCES sessions(id) ON DELETE SET NULL,
         ip_address VARCHAR(45) NOT NULL,
         mac_address VARCHAR(17),
@@ -207,7 +208,7 @@ export async function initializeDatabase() {
     await client.query(`
       CREATE TABLE IF NOT EXISTS kvkk_consents (
         id SERIAL PRIMARY KEY,
-        user_id VARCHAR(20) REFERENCES users(phone) ON DELETE SET NULL,
+        user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
         consent_type VARCHAR(50) NOT NULL CHECK (consent_type IN ('kvkk', 'terms', 'law5651')),
         consent_version VARCHAR(20) NOT NULL, -- Metin versiyonu (örn: '1.0', '2.1')
         consent_text_hash VARCHAR(64), -- Onaylanan metnin SHA-256 hash'i
@@ -224,7 +225,7 @@ export async function initializeDatabase() {
         id BIGSERIAL PRIMARY KEY,
         log_hash VARCHAR(64) NOT NULL UNIQUE, -- Bu log satırının SHA-256 hash'i
         previous_log_hash VARCHAR(64), -- Önceki logun hash'i (hash chain)
-        user_id VARCHAR(20) REFERENCES users(phone) ON DELETE SET NULL,
+        user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
         session_id INTEGER REFERENCES sessions(id) ON DELETE SET NULL,
         internal_ip VARCHAR(45) NOT NULL, -- İç IP (DHCP) - Kullanıcıya atanan iç IP (NAT varsa)
         external_ip VARCHAR(45), -- Dış IP (NAT sonrası)

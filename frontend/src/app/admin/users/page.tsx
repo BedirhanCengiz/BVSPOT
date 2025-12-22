@@ -103,7 +103,7 @@ export default function AdminUsers() {
 
   return (
     <AdminLayout>
-      <div className="px-6 pt-4 pb-6">
+      <div className="px-2 sm:px-4 lg:px-6 pt-2 sm:pt-4 pb-4 sm:pb-6">
         <PageHeader
           titleKey="usersTitle"
           descriptionKey="usersDescription"
@@ -111,19 +111,19 @@ export default function AdminUsers() {
         />
 
         {/* Filters */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 mb-4 shadow-sm">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white dark:bg-slate-800 rounded-lg sm:rounded-xl border border-slate-200 dark:border-slate-700 p-3 sm:p-4 md:p-5 mb-3 sm:mb-4 md:mb-5 shadow-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3 md:gap-4">
             <input
               type="text"
               placeholder={t('searchPlaceholder', language)}
               value={filters.search}
               onChange={(e) => setFilters({ ...filters, search: e.target.value, page: 1 })}
-              className="px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-700 transition-all duration-200 text-sm"
+              className="w-full px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 md:py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-700 transition-all duration-200 text-sm sm:text-base"
             />
             <select
               value={filters.status}
               onChange={(e) => setFilters({ ...filters, status: e.target.value, page: 1 })}
-              className="px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-700 transition-all duration-200 text-sm"
+              className="w-full px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 md:py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-700 transition-all duration-200 text-sm sm:text-base"
             >
               <option value="">{t('allStatuses', language)}</option>
               <option value="pending">{t('statusPending', language)}</option>
@@ -133,7 +133,7 @@ export default function AdminUsers() {
             </select>
             <button
               onClick={() => setFilters({ ...filters, pendingPassport: filters.pendingPassport ? '' : 'true', page: 1 })}
-              className={`px-4 py-2.5 rounded-lg font-medium transition-all duration-200 text-sm ${
+              className={`w-full sm:w-auto px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 md:py-3 rounded-lg font-medium transition-all duration-200 text-xs sm:text-sm md:text-base active:scale-95 ${
                 filters.pendingPassport
                   ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md'
                   : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'

@@ -41,51 +41,89 @@ export async function getLogs(filters = {}) {
   const client = await pool.connect();
   
   try {
-    let query = 'SELECT l.*, u.full_name, u.phone FROM logs l LEFT JOIN users u ON l.user_id = u.phone WHERE 1=1';
+    const conditions = [];
     const params = [];
     let paramIndex = 1;
 
+    // Base query parts - user_id is now BIGINT referencing users.id
+    const baseQuery = 'SELECT l.*, u.full_name, u.phone FROM logs l LEFT JOIN users u ON l.user_id = u.id';
+
     if (filters.userId) {
-      query += ` AND l.user_id = $${paramIndex++}`;
-      params.push(filters.userId);
+      conditions.push(`l.user_id = $${paramIndex++}`);
+      // Convert to integer since user_id is now BIGINT
+      const userIdValue = typeof filters.userId === 'number' 
+        ? filters.userId 
+        : parseInt(String(filters.userId).replace(/^0+/, ''), 10); // Remove leading zeros
+      if (isNaN(userIdValue)) {
+        throw new Error(`Invalid userId value: ${filters.userId}`);
+      }
+      params.push(userIdValue);
     }
 
     if (filters.action) {
-      query += ` AND l.action = $${paramIndex++}`;
-      params.push(filters.action);
+      conditions.push(`l.action = $${paramIndex++}`);
+      params.push(String(filters.action));
     }
 
     if (filters.startDate) {
-      query += ` AND l.created_at >= $${paramIndex++}`;
-      params.push(filters.startDate);
+      conditions.push(`l.created_at >= $${paramIndex++}`);
+      params.push(String(filters.startDate));
     }
 
     if (filters.endDate) {
-      query += ` AND l.created_at <= $${paramIndex++}`;
-      params.push(filters.endDate);
+      conditions.push(`l.created_at <= $${paramIndex++}`);
+      params.push(String(filters.endDate));
     }
 
     if (filters.ipAddress) {
-      query += ` AND l.ip_address = $${paramIndex++}`;
-      params.push(filters.ipAddress);
+      conditions.push(`l.ip_address = $${paramIndex++}`);
+      params.push(String(filters.ipAddress));
     }
 
-    query += ' ORDER BY l.created_at DESC';
+    // Build WHERE clause
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
     
-    if (filters.limit) {
-      query += ' LIMIT $' + paramIndex++;
-      params.push(filters.limit);
+    // Build ORDER BY
+    const orderBy = 'ORDER BY l.created_at DESC';
+    
+    // Build LIMIT - Embed directly in query (safe since it's from our code, not user input)
+    let limitClause = '';
+    if (filters.limit !== undefined && filters.limit !== null) {
+      // Convert to integer and embed directly (safe - not user input)
+      const limitValue = Math.floor(Number(filters.limit));
+      if (isNaN(limitValue) || limitValue < 0 || limitValue > 1000000) {
+        throw new Error(`Invalid limit value: ${filters.limit}`);
+      }
+      // Embed directly in query - safe because it's from our code, not user input
+      limitClause = `LIMIT ${limitValue}`;
     }
     
-    if (filters.offset !== undefined) {
-      query += ' OFFSET $' + paramIndex++;
-      params.push(filters.offset);
+    // Build OFFSET - Embed directly in query (safe since it's from our code, not user input)
+    let offsetClause = '';
+    if (filters.offset !== undefined && filters.offset !== null) {
+      // Convert to integer and embed directly (safe - not user input)
+      const offsetValue = Math.floor(Number(filters.offset));
+      if (isNaN(offsetValue) || offsetValue < 0 || offsetValue > 1000000) {
+        throw new Error(`Invalid offset value: ${filters.offset}`);
+      }
+      // Embed directly in query - safe because it's from our code, not user input
+      offsetClause = `OFFSET ${offsetValue}`;
     }
+
+    // Build final query
+    const queryParts = [baseQuery, whereClause, orderBy, limitClause, offsetClause].filter(Boolean);
+    const query = queryParts.join(' ');
+
+    // Debug: Log query and params
+    console.log('[getLogs] Query:', query);
+    console.log('[getLogs] Params:', params.map((p, i) => `$${i + 1}: ${p} (${typeof p})`).join(', '));
 
     const result = await client.query(query, params);
     return result.rows;
   } catch (error) {
-    console.error('Log getirme hatası:', error);
+    console.error('[getLogs] Log getirme hatası:', error);
+    console.error('[getLogs] Error message:', error.message);
+    console.error('[getLogs] Error code:', error.code);
     throw error;
   } finally {
     client.release();

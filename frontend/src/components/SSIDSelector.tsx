@@ -73,16 +73,16 @@ export default function SSIDSelector({ onSSIDChange }: SSIDSelectorProps) {
   }
 
   return (
-    <div className="absolute top-4 left-4 z-20">
-      <div className="bg-white/90 backdrop-blur-md rounded-lg shadow-lg p-3 border border-white/30">
-        <label className="block text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1">
-          <Wifi className="w-4 h-4" />
-          SSID Seçiniz
+    <div className="absolute top-2 sm:top-4 left-2 sm:left-4 z-20 max-w-[calc(100%-1rem)] sm:max-w-none">
+      <div className="bg-white/90 backdrop-blur-md rounded-lg shadow-lg p-2 sm:p-3 border border-white/30">
+        <label className="block text-[10px] sm:text-xs font-semibold text-gray-700 mb-1.5 sm:mb-2 flex items-center gap-1">
+          <Wifi className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+          <span className="truncate">SSID Seçiniz</span>
         </label>
         <select
           value={selectedSSID}
           onChange={(e) => setSelectedSSID(e.target.value)}
-          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white text-gray-900"
+          className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white text-gray-900 min-h-[36px] sm:min-h-[40px]"
         >
           <option value="">Varsayılan</option>
           {ssids.map((ssid) => (

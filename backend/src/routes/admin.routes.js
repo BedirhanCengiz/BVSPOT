@@ -755,7 +755,8 @@ router.get('/logs', async (req, res, next) => {
 
       if (userId) {
         countQuery += ` AND user_id = $${paramIndex++}`;
-        countParams.push(parseInt(userId));
+        // user_id is VARCHAR (phone number), not integer
+        countParams.push(String(userId));
       }
       if (action) {
         countQuery += ` AND action = $${paramIndex++}`;
@@ -779,7 +780,7 @@ router.get('/logs', async (req, res, next) => {
 
       // Logları getir
       const logs = await getLogs({
-        userId: userId ? parseInt(userId) : null,
+        userId: userId ? (typeof userId === 'number' ? userId : parseInt(String(userId).replace(/^0+/, ''), 10)) : null, // user_id is now BIGINT
         action,
         startDate,
         endDate,
@@ -809,28 +810,127 @@ router.get('/logs', async (req, res, next) => {
  * GET /api/admin/logs/export
  * Logları export et (CSV/JSON)
  */
-router.get('/logs/export', async (req, res, next) => {
+router.get('/logs/export', requireAdmin, async (req, res, next) => {
   try {
-    const { format = 'json', startDate, endDate } = req.query;
-    const logs = await getLogs({ startDate, endDate, limit: 10000 });
+    console.log('[Export] Export request received:', {
+      format: req.query.format,
+      hasStartDate: !!req.query.startDate,
+      hasEndDate: !!req.query.endDate,
+      hasAction: !!req.query.action
+    });
+    
+    const { format = 'json', startDate, endDate, action } = req.query;
+    const filters = { limit: 10000 }; // Limit as integer
+    
+    // Only add filters if they have values
+    if (startDate) filters.startDate = startDate;
+    if (endDate) filters.endDate = endDate;
+    if (action && action.trim()) filters.action = action.trim();
+    
+    console.log('[Export] Fetching logs with filters:', JSON.stringify(filters));
+    
+    let logs;
+    try {
+      logs = await getLogs(filters);
+      console.log('[Export] Fetched', logs?.length || 0, 'logs');
+    } catch (dbError) {
+      console.error('[Export] Database error:', dbError);
+      console.error('[Export] Database error message:', dbError.message);
+      console.error('[Export] Database error code:', dbError.code);
+      console.error('[Export] Database error stack:', dbError.stack);
+      throw dbError;
+    }
+
+    if (!Array.isArray(logs)) {
+      console.error('[Export] Logs is not an array:', typeof logs, logs);
+      throw new Error('Logs is not an array');
+    }
 
     if (format === 'csv') {
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', 'attachment; filename=logs.csv');
+      // Set headers BEFORE writing any data
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename=logs_${new Date().toISOString().split('T')[0]}.csv`);
       
-      // CSV header
-      res.write('ID,User ID,Action,IP Address,MAC Address,Created At\n');
+      // Helper function for CSV escaping
+      const escapeCSV = (field) => {
+        if (field === null || field === undefined) return '';
+        const str = String(field);
+        // If field contains comma, quote, or newline, wrap in quotes and escape quotes
+        if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      };
       
-      // CSV rows
-      logs.forEach(log => {
-        res.write(`${log.id},${log.user_id || ''},${log.action},${log.ip_address || ''},${log.mac_address || ''},${log.created_at}\n`);
-      });
-      
-      res.end();
+      try {
+        // UTF-8 BOM for Excel compatibility
+        res.write('\uFEFF');
+        
+        // CSV header
+        res.write('ID,User ID,Action,IP Address,MAC Address,Created At\n');
+        
+        // CSV rows with proper escaping
+        let rowCount = 0;
+        for (const log of logs) {
+          if (!log) continue; // Skip null/undefined logs
+          
+          try {
+            const row = [
+              escapeCSV(log.id),
+              escapeCSV(log.user_id),
+              escapeCSV(log.action),
+              escapeCSV(log.ip_address),
+              escapeCSV(log.mac_address),
+              escapeCSV(log.created_at)
+            ].join(',') + '\n';
+            
+            res.write(row);
+            rowCount++;
+          } catch (rowError) {
+            console.error('[Export] Error writing row:', rowError, 'Log:', log);
+            // Continue with next row
+          }
+        }
+        
+        console.log('[Export] Wrote', rowCount, 'rows to CSV');
+        res.end();
+      } catch (writeError) {
+        console.error('[Export] Error writing CSV:', writeError);
+        console.error('[Export] Write error stack:', writeError.stack);
+        if (!res.headersSent) {
+          return res.status(500).json({ 
+            error: 'CSV yazma hatası', 
+            message: process.env.NODE_ENV === 'development' ? writeError.message : 'Sunucu hatası oluştu' 
+          });
+        }
+        // If headers already sent, we can't send JSON, so just end the response
+        if (!res.finished) {
+          res.end();
+        }
+        throw writeError;
+      }
     } else {
       res.json({ logs });
     }
   } catch (error) {
+    console.error('[Export] Logs export hatası:', error);
+    console.error('[Export] Error stack:', error.stack);
+    console.error('[Export] Error details:', {
+      message: error.message,
+      code: error.code,
+      name: error.name
+    });
+    
+    // If headers haven't been sent yet, send error response
+    if (!res.headersSent) {
+      return res.status(500).json({ 
+        error: 'Export başarısız', 
+        message: process.env.NODE_ENV === 'development' ? error.message : 'Sunucu hatası oluştu',
+        ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
+      });
+    }
+    
+    // If headers already sent, just log the error
     next(error);
   }
 });
@@ -865,7 +965,7 @@ router.get('/immutable-logs', requireAdmin, async (req, res, next) => {
     const { createAdminAccessLog } = await import('../services/adminAccessLogService.js');
     
     const filters = {
-      userId: userId ? parseInt(userId) : null,
+      userId: userId ? (typeof userId === 'number' ? userId : parseInt(String(userId).replace(/^0+/, ''), 10)) : null, // user_id is now BIGINT
       internalIp,
       externalIp,
       sourceIp,
@@ -904,7 +1004,14 @@ router.get('/immutable-logs', requireAdmin, async (req, res, next) => {
       
       if (userId) {
         countQuery += ` AND user_id = $${paramIndex++}`;
-        countParams.push(parseInt(userId));
+        // user_id is now BIGINT (integer phone number)
+        const userIdValue = typeof userId === 'number' 
+          ? userId 
+          : parseInt(String(userId).replace(/^0+/, ''), 10); // Remove leading zeros
+        if (isNaN(userIdValue)) {
+          throw new Error(`Invalid userId value: ${userId}`);
+        }
+        countParams.push(userIdValue);
       }
       if (internalIp) {
         countQuery += ` AND internal_ip = $${paramIndex++}`;
@@ -1002,10 +1109,15 @@ router.get('/immutable-logs/export', requireAdmin, async (req, res, next) => {
     const { createAdminAccessLog } = await import('../services/adminAccessLogService.js');
     
     const filters = {
-      userId: userId ? parseInt(userId) : null,
+      userId,
       internalIp,
       externalIp,
+      sourceIp: req.query.sourceIp,
+      destinationIp: req.query.destinationIp,
+      sourcePort: req.query.sourcePort ? parseInt(req.query.sourcePort) : null,
+      destinationPort: req.query.destinationPort ? parseInt(req.query.destinationPort) : null,
       macAddress,
+      protocol: req.query.protocol,
       startDate,
       endDate,
       limit: 100000 // Export için yüksek limit
@@ -1013,15 +1125,19 @@ router.get('/immutable-logs/export', requireAdmin, async (req, res, next) => {
     
     const logs = await getImmutableAccessLogs(filters);
     
-    // Admin erişim logu
-    await createAdminAccessLog({
-      admin_id: req.admin.id,
-      action: 'export_immutable_logs',
-      search_criteria: filters,
-      accessed_log_ids: logs.map(l => l.id),
-      ip_address: req.ip,
-      user_agent: req.get('user-agent')
-    });
+    // Admin erişim logu (hata olsa bile devam et)
+    try {
+      await createAdminAccessLog({
+        admin_id: req.admin.id,
+        action: 'export_immutable_logs',
+        search_criteria: filters,
+        accessed_log_ids: logs.map(l => l.id).filter(id => id != null),
+        ip_address: req.ip,
+        user_agent: req.get('user-agent')
+      });
+    } catch (logError) {
+      console.error('Admin access log oluşturma hatası (export devam ediyor):', logError);
+    }
     
     if (format === 'csv') {
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
@@ -1029,7 +1145,7 @@ router.get('/immutable-logs/export', requireAdmin, async (req, res, next) => {
       
       // 5651 uyumlu CSV header
       res.write('\uFEFF'); // UTF-8 BOM
-      res.write('Tarih,Saat,Kullanıcı ID,Ad Soyad,İç IP,Dış IP,MAC Adresi,Gateway ID,Firewall ID,Başlangıç Zamanı,Bitiş Zamanı,Kaynak Port,Hedef Port,Protokol,Veri Transferi (Byte),Log Hash\n');
+      res.write('Tarih,Saat,Kullanıcı ID,Ad Soyad,İç IP,Dış IP,Kaynak IP,Hedef IP,MAC Adresi,Gateway ID,Firewall ID,Başlangıç Zamanı,Bitiş Zamanı,Kaynak Port,Hedef Port,Protokol,Veri Transferi (Byte),Oturum Süresi (Saniye),Log Hash\n');
       
       // CSV rows
       logs.forEach(log => {
@@ -1045,6 +1161,8 @@ router.get('/immutable-logs/export', requireAdmin, async (req, res, next) => {
           log.full_name || '',
           log.internal_ip || '',
           log.external_ip || '',
+          log.source_ip || '',
+          log.destination_ip || '',
           log.mac_address || '',
           log.gateway_id || '',
           log.firewall_id || '',
@@ -1054,6 +1172,7 @@ router.get('/immutable-logs/export', requireAdmin, async (req, res, next) => {
           log.destination_port || '',
           log.protocol || '',
           log.data_transferred_bytes || 0,
+          log.session_duration_seconds || '',
           log.log_hash || ''
         ].map(field => `"${String(field).replace(/"/g, '""')}"`).join(',') + '\n');
       });
@@ -1086,6 +1205,43 @@ router.get('/hash-chain/verify', requireAdmin, async (req, res, next) => {
     res.json(result);
   } catch (error) {
     next(error);
+  }
+});
+
+/**
+ * GET /api/admin/ntp-sync
+ * NTP senkronizasyon durumunu kontrol eder ve günceller
+ */
+router.get('/ntp-sync', requireAdmin, async (req, res, next) => {
+  try {
+    const { checkNTPSync, syncNTP } = await import('../utils/timeUtils.js');
+    const { force } = req.query;
+    
+    if (force === 'true') {
+      // Manuel senkronizasyon
+      const offset = await syncNTP();
+      const status = await checkNTPSync();
+      res.json({
+        success: true,
+        message: 'NTP senkronizasyonu güncellendi',
+        offset: offset,
+        ...status
+      });
+    } else {
+      // Sadece durum kontrolü
+      const status = await checkNTPSync();
+      res.json({
+        success: true,
+        ...status
+      });
+    }
+  } catch (error) {
+    console.error('[NTP Sync] Hata:', error);
+    res.status(500).json({
+      success: false,
+      error: 'NTP senkronizasyon kontrolü başarısız',
+      message: error.message
+    });
   }
 });
 

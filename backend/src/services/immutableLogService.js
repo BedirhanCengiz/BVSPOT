@@ -1,6 +1,6 @@
 import { pool } from '../database/db.js';
 import { calculateLogHash, getPreviousLogHash, addToHashChain } from './hashChainService.js';
-import { getTurkeyTime } from '../utils/timeUtils.js';
+import { getTurkeyTimeSync } from '../utils/timeUtils.js';
 
 /**
  * Immutable Access Log Servisi
@@ -8,11 +8,11 @@ import { getTurkeyTime } from '../utils/timeUtils.js';
  */
 
 /**
- * UTC+3 (Türkiye saati) alır
+ * UTC+3 (Türkiye saati) alır - Senkronize olmayan versiyon (performans için)
  * @returns {Date} UTC+3 zamanı
  */
 function getTurkeyTimestamp() {
-  return getTurkeyTime();
+  return getTurkeyTimeSync();
 }
 
 /**
@@ -137,9 +137,8 @@ export async function logSessionEnd(sessionId, endTime) {
   try {
     // Session bilgilerini al
     const sessionResult = await client.query(
-      `SELECT s.*, u.id as user_id 
+      `SELECT s.*, s.user_id 
        FROM sessions s
-       LEFT JOIN users u ON s.user_id = u.id
        WHERE s.id = $1`,
       [sessionId]
     );
@@ -204,7 +203,14 @@ export async function getImmutableAccessLogs(filters = {}) {
     
     if (filters.userId) {
       query += ` AND ial.user_id = $${paramIndex++}`;
-      params.push(filters.userId);
+      // Convert to integer since user_id is now BIGINT
+      const userIdValue = typeof filters.userId === 'number' 
+        ? filters.userId 
+        : parseInt(String(filters.userId).replace(/^0+/, ''), 10); // Remove leading zeros
+      if (isNaN(userIdValue)) {
+        throw new Error(`Invalid userId value: ${filters.userId}`);
+      }
+      params.push(userIdValue);
     }
     
     if (filters.internalIp) {
@@ -313,7 +319,7 @@ export async function findUserByIpAndTime(ip, timestamp) {
         u.tckn,
         u.id_type
       FROM immutable_access_logs ial
-      LEFT JOIN users u ON ial.user_id = u.id
+      LEFT JOIN users u ON ial.user_id = u.phone
       WHERE (
         (ial.internal_ip = $1 OR ial.external_ip = $1)
         AND ial.connection_start_time >= $2

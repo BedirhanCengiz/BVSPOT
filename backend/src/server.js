@@ -20,6 +20,7 @@ import ssidRoutes from './routes/ssid.routes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { rateLimiter, adminRateLimiter } from './middleware/rateLimiter.js';
 import { macAddressMiddleware } from './middleware/macAddress.js';
+import { syncNTP, checkNTPSync } from './utils/timeUtils.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -170,6 +171,29 @@ async function startServer() {
     await redisClient.connect();
     await initializeDatabase();
     console.log('Database initialized');
+    
+    // NTP senkronizasyonu - Başlangıçta ve her saatte bir
+    console.log('🕐 NTP senkronizasyonu başlatılıyor...');
+    try {
+      await syncNTP();
+      const syncStatus = await checkNTPSync();
+      console.log(`✅ NTP senkronizasyonu: ${syncStatus.message}`);
+    } catch (error) {
+      console.warn('⚠️  NTP senkronizasyonu başarısız, sistem zamanı kullanılıyor:', error.message);
+    }
+    
+    // NTP senkronizasyonu - Her saatte bir
+    cron.schedule('0 * * * *', async () => {
+      try {
+        console.log('[Cron] NTP senkronizasyonu güncelleniyor...');
+        await syncNTP();
+        const syncStatus = await checkNTPSync();
+        console.log(`[Cron] NTP senkronizasyonu: ${syncStatus.message}`);
+      } catch (error) {
+        console.error('[Cron] NTP senkronizasyonu hatası:', error);
+      }
+    });
+    console.log('✅ NTP senkronizasyon cron job başlatıldı (her saatte bir)');
     
     // Session timeout kontrolü - Her 5 dakikada bir çalışır
     cron.schedule('*/5 * * * *', async () => {

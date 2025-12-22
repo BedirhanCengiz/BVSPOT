@@ -73,7 +73,7 @@ export default function AdminDashboard() {
 
   return (
     <AdminLayout>
-      <div className="px-6 pt-4 pb-6">
+      <div className="px-2 sm:px-4 lg:px-6 pt-2 sm:pt-4 pb-4 sm:pb-6">
         <PageHeader
           titleKey="dashboardTitle"
           descriptionKey="dashboardDescription"
