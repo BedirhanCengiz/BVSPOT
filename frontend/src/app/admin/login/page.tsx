@@ -41,6 +41,15 @@ export default function AdminLogin() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Logo - Sol Üst */}
+      <div className="absolute top-6 left-6 z-20">
+        <img 
+          src="/assets/bvspot_logo_metalic.png" 
+          alt="BVSPOT Logo" 
+          className="h-12 w-auto"
+        />
+      </div>
+
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 left-20 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-float"></div>

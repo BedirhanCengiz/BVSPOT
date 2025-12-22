@@ -12,8 +12,7 @@ import {
   Menu,
   X,
   Globe,
-  Wifi,
-  Sparkles
+  Wifi
 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { t } from '@/lib/i18n';
@@ -50,9 +49,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       {/* Mobile Header */}
       <div className="lg:hidden bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-700/50 shadow-sm p-4 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center gap-2">
-          <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 p-1.5 rounded-lg shadow-lg">
-            <Sparkles className="w-5 h-5 text-white" />
-          </div>
+          <img 
+            src="/assets/bvspot_logo_metalic.png" 
+            alt="BVSPOT Logo" 
+            className="h-8 w-auto"
+          />
           <h1 className="text-lg font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
             BVSPOT
           </h1>
@@ -75,9 +76,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           {/* Logo Section */}
           <div className="p-4 border-b border-slate-200/50 dark:border-slate-700/50">
             <div className="flex items-center gap-2 mb-1">
-              <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 p-2 rounded-lg shadow-lg">
-                <Sparkles className="w-5 h-5 text-white" />
-              </div>
+              <img 
+                src="/assets/bvspot_logo_metalic.png" 
+                alt="BVSPOT Logo" 
+                className="h-10 w-auto"
+              />
               <div>
                 <h2 className="text-lg font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
                   BVSPOT
