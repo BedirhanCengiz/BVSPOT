@@ -5,12 +5,17 @@ import { pool } from '../database/db.js';
 import { validateTCKN } from '../utils/tcknValidator.js';
 import { verifyTCKN } from '../services/tcknVerificationService.js';
 import { sendOTP, verifyOTP } from '../services/otpService.js';
-import { generateToken } from '../middleware/auth.js';
+import { authenticateToken, generateToken } from '../middleware/auth.js';
+import { buildFortiRelease } from '../services/fortiGateService.js';
 import { createLog } from '../services/logService.js';
 import { registerRateLimiter, otpRateLimiter } from '../middleware/rateLimiter.js';
 import { passwordValidator } from '../middleware/security.js';
 
 const router = express.Router();
+
+function isIpv4(ip) {
+  return typeof ip === 'string' && /^(?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\.(?:25[0-5]|2[0-4]\d|1?\d?\d)){3}$/.test(ip);
+}
 
 /**
  * POST /api/auth/register
@@ -508,7 +513,7 @@ router.post('/login',
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { phone, password, macAddress: bodyMacAddress } = req.body;
+      const { phone, password, macAddress: bodyMacAddress, userIp } = req.body;
 
       // MAC adresini otomatik çek (middleware'den veya body'den)
       const macAddress = req.macAddress || bodyMacAddress || null;
@@ -553,11 +558,13 @@ router.post('/login',
           });
         }
 
+        const guestIp = isIpv4(userIp) ? userIp : null;
+
         // MAC adresi güncelle
         if (macAddress) {
           await client.query(
             'UPDATE users SET mac_address = $1, ip_address = $2, updated_at = NOW() WHERE phone = $3',
-            [macAddress, req.ip, user.phone]
+            [macAddress, guestIp || req.ip, user.phone]
           );
         }
 
@@ -573,10 +580,9 @@ router.post('/login',
 
         // MAC adresini otomatik çek (middleware'den veya body'den)
         const sessionMacAddress = macAddress || user.mac_address || null;
-        
-        // İç IP ve dış IP ayrımı (basit implementasyon - production'da DHCP/NAT'tan alınmalı)
-        const internalIp = req.ip || user.ip_address || null;
-        const externalIp = req.headers['x-forwarded-for'] || req.ip || null; // NAT sonrası IP
+
+        const internalIp = guestIp || req.ip || user.ip_address || null;
+        const externalIp = req.headers['x-forwarded-for'] || req.ip || null;
         const gatewayId = req.headers['x-gateway-id'] || process.env.GATEWAY_ID || null;
         const firewallId = req.headers['x-firewall-id'] || process.env.FIREWALL_ID || null;
 
@@ -645,6 +651,23 @@ router.post('/login',
     }
   }
 );
+
+/**
+ * POST /api/auth/fortigate/release
+ * Giriş doğrulandıktan sonra tarayıcının FortiGate fgtauth adresine
+ * göndereceği formu döndürür. Parola yalnızca başarılı kullanıcı token'ı ile verilir.
+ */
+router.post('/fortigate/release', authenticateToken, (req, res) => {
+  try {
+    const result = buildFortiRelease({
+      postUrl: req.body?.post,
+      magic: req.body?.magic,
+    });
+    res.json(result);
+  } catch (error) {
+    res.status(error.status || 500).json({ error: error.message || 'FortiGate oturumu açılamadı' });
+  }
+});
 
 /**
  * POST /api/auth/admin-login

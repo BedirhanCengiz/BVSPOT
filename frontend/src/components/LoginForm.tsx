@@ -6,6 +6,7 @@ import { authAPI } from '@/lib/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { t } from '@/lib/i18n';
 import { getMacAddressAuto } from '@/utils/macAddress';
+import { getFortiParams } from '@/utils/captivePortal';
 import PhoneInput from '@/components/PhoneInput';
 
 interface LoginFormData {
@@ -44,6 +45,11 @@ export default function LoginForm({ idType, onSuccess, onBack }: LoginFormProps)
       // MAC adresi varsa otomatik ekle (kullanıcıya sormadan)
       if (macAddress) {
         loginData.macAddress = macAddress;
+      }
+
+      const forti = getFortiParams();
+      if (forti?.userip) {
+        loginData.userIp = forti.userip;
       }
       
       const response = await authAPI.login(loginData);

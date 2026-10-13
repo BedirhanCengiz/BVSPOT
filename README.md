@@ -172,6 +172,7 @@ npm start
 
 ## 📚 Dokümantasyon
 
+- **[CANLI_KURULUM.md](./CANLI_KURULUM.md)**: Sanal sunucuya tek komutla kurulum, canlıya alma ve FortiGate bağlantısı
 - **[KURULUM_REHBERI.md](./KURULUM_REHBERI.md)**: Detaylı kurulum ve kullanım rehberi
 - **API Dokümantasyonu**: Backend route dosyalarında JSDoc yorumları mevcuttur
 - **Veritabanı Şeması**: `backend/src/database/init.js` dosyasını inceleyin

@@ -20,9 +20,16 @@ export function extractMacAddress(req) {
     }
   }
 
-  // 2. Query parametresinden al
-  if (req.query && req.query.mac) {
-    const mac = req.query.mac.trim();
+  // 2. Query parametresinden al (FortiGate: usermac)
+  const queryMac = req.query && (
+    req.query.mac ||
+    req.query.macAddress ||
+    req.query.mac_address ||
+    req.query.usermac ||
+    req.query.client_mac
+  );
+  if (queryMac) {
+    const mac = String(queryMac).trim();
     if (isValidMacFormat(mac)) {
       return normalizeMacAddress(mac);
     }
@@ -101,6 +108,7 @@ export function macAddressMiddleware(req, res, next) {
   
   next();
 }
+
 
 
 

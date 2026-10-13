@@ -16,12 +16,12 @@ export function getMacAddress(): string | null {
     return null;
   }
 
-  // 1. URL query parametresinden al (?mac=AA:BB:CC:DD:EE:FF)
+  // 1. URL query parametresinden al (?mac=... veya FortiGate ?usermac=...)
   const urlParams = new URLSearchParams(window.location.search);
-  let macAddress = urlParams.get('mac') || urlParams.get('macAddress') || urlParams.get('mac_address');
+  let macAddress = readMacParam(urlParams);
   
-  if (macAddress && isValidMacFormat(macAddress)) {
-    return normalizeMacAddress(macAddress);
+  if (macAddress) {
+    return macAddress;
   }
 
   // 2. Referrer URL'den al (captive portal redirect'lerinde)
@@ -29,12 +29,10 @@ export function getMacAddress(): string | null {
     const referrer = document.referrer;
     if (referrer) {
       const referrerUrl = new URL(referrer);
-      macAddress = referrerUrl.searchParams.get('mac') || 
-                   referrerUrl.searchParams.get('macAddress') || 
-                   referrerUrl.searchParams.get('mac_address');
+      macAddress = readMacParam(referrerUrl.searchParams);
       
-      if (macAddress && isValidMacFormat(macAddress)) {
-        return normalizeMacAddress(macAddress);
+      if (macAddress) {
+        return macAddress;
       }
     }
   } catch (e) {
@@ -45,10 +43,10 @@ export function getMacAddress(): string | null {
   const hash = window.location.hash;
   if (hash) {
     const hashParams = new URLSearchParams(hash.substring(1));
-    macAddress = hashParams.get('mac') || hashParams.get('macAddress') || hashParams.get('mac_address');
+    macAddress = readMacParam(hashParams);
     
-    if (macAddress && isValidMacFormat(macAddress)) {
-      return normalizeMacAddress(macAddress);
+    if (macAddress) {
+      return macAddress;
     }
   }
 
@@ -63,6 +61,17 @@ export function getMacAddress(): string | null {
  * - AA-BB-CC-DD-EE-FF (dash)
  * - AABBCCDDEEFF (no separator)
  */
+function readMacParam(params: URLSearchParams): string | null {
+  const keys = ['mac', 'macAddress', 'mac_address', 'usermac', 'client_mac', 'clientmac'];
+  for (const key of keys) {
+    const value = params.get(key);
+    if (value && isValidMacFormat(value)) {
+      return normalizeMacAddress(value);
+    }
+  }
+  return null;
+}
+
 function isValidMacFormat(mac: string): boolean {
   if (!mac || typeof mac !== 'string') {
     return false;
@@ -156,6 +165,7 @@ export function getMacAddressAuto(): string | null {
 
   return null;
 }
+
 
 
 

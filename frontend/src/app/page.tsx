@@ -9,6 +9,7 @@ import LanguageSwitcher from '@/components/LanguageSwitcher';
 import MainMenu from '@/components/MainMenu';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { adminAPI } from '@/lib/api';
+import { captureFortiParams } from '@/utils/captivePortal';
 
 export type AuthStep = 'menu' | 'login' | 'register' | 'otp' | 'success';
 export type IdType = 'tckn' | 'passport' | 'foreign_id';
@@ -31,6 +32,8 @@ export default function Home() {
 
   // URL'den SSID parametresini al ve arkaplan resmini yükle
   useEffect(() => {
+    captureFortiParams();
+
     const loadSSIDBackground = async () => {
       if (typeof window === 'undefined') return;
 

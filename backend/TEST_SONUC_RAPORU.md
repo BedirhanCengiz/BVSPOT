@@ -139,3 +139,4 @@ Tüm 5651 uyumlu tablolar başarıyla oluşturuldu:
 **Durum:** ✅ PRODUCTION'A HAZIR
 
 
+

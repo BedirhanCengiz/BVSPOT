@@ -114,6 +114,8 @@ export const authAPI = {
     api.post('/auth/send-otp', { phone, userId }),
   verifyOTP: (phone: string, code: string, userId: number) =>
     api.post('/auth/verify-otp', { phone, code, userId }),
+  fortiRelease: (data: { post: string; magic: string }) =>
+    api.post('/auth/fortigate/release', data),
   adminLogin: (email: string, password: string) =>
     api.post('/auth/admin-login', { email, password }),
 };

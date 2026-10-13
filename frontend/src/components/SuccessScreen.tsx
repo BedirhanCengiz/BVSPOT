@@ -1,28 +1,71 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { t } from '@/lib/i18n';
+import { authAPI } from '@/lib/api';
+import { getFortiParams } from '@/utils/captivePortal';
 
 interface SuccessScreenProps {
   redirectUrl?: string;
   isPendingApproval?: boolean;
 }
 
+function postToFortiGate(action: string, fields: Record<string, string>) {
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = action;
+  form.acceptCharset = 'UTF-8';
+  Object.entries(fields).forEach(([name, value]) => {
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = name;
+    input.value = value;
+    form.appendChild(input);
+  });
+  document.body.appendChild(form);
+  form.submit();
+}
+
 export default function SuccessScreen({ redirectUrl = 'https://google.com', isPendingApproval = false }: SuccessScreenProps) {
   const { language } = useLanguage();
+  const [fortiError, setFortiError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isPendingApproval) {
-      // 3 saniye sonra yönlendir (sadece onaylanmış kullanıcılar için)
+    if (isPendingApproval) {
+      return;
+    }
+
+    const forti = getFortiParams();
+    if (forti?.magic && forti?.post) {
       const timer = setTimeout(() => {
-        window.location.href = redirectUrl;
-      }, 3000);
+        authAPI.fortiRelease({ post: forti.post as string, magic: forti.magic as string })
+          .then((response) => {
+            if (!response.data?.enabled || !response.data?.action || !response.data?.fields) {
+              window.location.href = redirectUrl;
+              return;
+            }
+            postToFortiGate(response.data.action, response.data.fields);
+          })
+          .catch(() => {
+            setFortiError(
+              language === 'en'
+                ? 'Could not open the FortiGate session. Open any website again to get a new login page.'
+                : 'FortiGate oturumu açılamadı. Yeni bir giriş sayfası için tarayıcıda herhangi bir siteyi yeniden açın.'
+            );
+          });
+      }, 1200);
 
       return () => clearTimeout(timer);
     }
-  }, [redirectUrl, isPendingApproval]);
+
+    const timer = setTimeout(() => {
+      window.location.href = redirectUrl;
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [redirectUrl, isPendingApproval, language]);
 
   if (isPendingApproval) {
     return (
@@ -69,15 +112,21 @@ export default function SuccessScreen({ redirectUrl = 'https://google.com', isPe
         {t('internetAccessActivated', language)}
       </p>
       <div className="flex flex-col items-center gap-2 sm:gap-2.5 md:gap-3 animate-slide-up">
-        <div className="relative">
-          <div className="animate-spin rounded-full h-7 w-7 sm:h-8 sm:w-8 md:h-10 md:w-10 border-2 sm:border-3 md:border-4 border-primary-200 border-t-primary-600"></div>
-          <div className="absolute inset-0 animate-ping rounded-full h-7 w-7 sm:h-8 sm:w-8 md:h-10 md:w-10 border-2 sm:border-3 md:border-4 border-primary-400 opacity-20"></div>
-        </div>
+        {!fortiError && (
+          <div className="relative">
+            <div className="animate-spin rounded-full h-7 w-7 sm:h-8 sm:w-8 md:h-10 md:w-10 border-2 sm:border-3 md:border-4 border-primary-200 border-t-primary-600"></div>
+            <div className="absolute inset-0 animate-ping rounded-full h-7 w-7 sm:h-8 sm:w-8 md:h-10 md:w-10 border-2 sm:border-3 md:border-4 border-primary-400 opacity-20"></div>
+          </div>
+        )}
         <p className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 font-medium px-2 sm:px-4 text-center break-words">
-          {t('redirecting', language)}{' '}
-          <a href={redirectUrl} className="text-primary-600 hover:text-primary-700 font-bold underline decoration-2 underline-offset-2 transition-colors break-all">
-            {t('clickHere', language)}
-          </a>
+          {fortiError || (
+            <>
+              {t('redirecting', language)}{' '}
+              <a href={redirectUrl} className="text-primary-600 hover:text-primary-700 font-bold underline decoration-2 underline-offset-2 transition-colors break-all">
+                {t('clickHere', language)}
+              </a>
+            </>
+          )}
         </p>
       </div>
     </div>

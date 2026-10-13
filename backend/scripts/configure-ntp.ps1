@@ -46,3 +46,4 @@ w32tm /query /peers
 Write-Host "`n✅ NTP yapılandırması tamamlandı!" -ForegroundColor Green
 Write-Host "`nNot: Sistem zamanının senkronize olması birkaç dakika sürebilir." -ForegroundColor Yellow
 
+

@@ -160,3 +160,4 @@ Backend konsolunda şu logları görebilirsiniz:
 - Uygulama seviyesi NTP, sistem zamanı yanlışsa düzeltir
 - NTP başarısız olursa sistem zamanı kullanılır (fallback)
 
+

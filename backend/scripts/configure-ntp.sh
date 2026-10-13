@@ -97,3 +97,4 @@ fi
 echo ""
 echo "✅ NTP yapılandırması tamamlandı!"
 
+

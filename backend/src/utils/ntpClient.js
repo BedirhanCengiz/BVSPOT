@@ -112,3 +112,4 @@ export async function getNTPTime() {
   throw new Error(`Tüm NTP sunucuları başarısız: ${errors.join(', ')}`);
 }
 
+

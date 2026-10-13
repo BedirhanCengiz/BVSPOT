@@ -118,3 +118,4 @@ Kod seviyesinde tüm bileşenler doğru şekilde oluşturulmuş ve entegre edilm
 Fonksiyonel testler için PostgreSQL veritabanının çalışır durumda olması gerekmektedir.
 
 
+

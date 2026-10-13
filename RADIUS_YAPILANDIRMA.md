@@ -1,5 +1,7 @@
 # 🔐 RADIUS Yapılandırma Rehberi
 
+Bu dosya genel bir RADIUS taslağıdır. Burada geçen `/api/radius/*` uçları bu kod tabanında yoktur. Canlı FortiGate bağlantısı harici captive portal ile yapılır; adımlar [CANLI_KURULUM.md](./CANLI_KURULUM.md) içindedir.
+
 Bu doküman, BVSPOT sisteminin RADIUS sunucusu ile entegrasyonu için gerekli yapılandırmaları açıklar.
 
 ## 📋 RADIUS Secret Kodu Nedir?
