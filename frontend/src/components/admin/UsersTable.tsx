@@ -518,7 +518,7 @@ export default function UsersTable({
                         min: { value: 0, message: t('quotaMin', language) },
                         validate: (value) => {
                           if (unlimitedQuota) return true;
-                          return value > 0 || t('quotaMin', language);
+                          return (value ?? 0) > 0 || t('quotaMin', language);
                         }
                       })}
                       disabled={unlimitedQuota}
