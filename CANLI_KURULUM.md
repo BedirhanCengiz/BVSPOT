@@ -95,7 +95,17 @@ Alan adı kullanıyorsanız `--domain` değerini o adla yazın. Betik alan adın
 
 Sertifika hatası `DNS problem: SERVFAIL` ise yazdığınız alan adı yok ya da A kaydı bu sunucuya bakmıyor. IP ile kurun veya DNS'i düzeltip yeniden çalıştırın.
 
-`Failed to compile` derleme hatasıdır. Sunucuda `git pull` yapıp betiği yeniden çalıştırın. Güncel kod bu derlemeden geçecek şekilde tutulur.
+`Failed to compile` derleme hatasıdır. Sunucuda `git fetch origin` ve `git reset --hard origin/main` yapıp betiği yeniden çalıştırın.
+
+`Changing to the requested working directory failed: Permission denied` proje `/root` altındayken servisin `bvspot` kullanıcısıyla açılmaya çalışmasından olur. Güncel betik bu durumda servisi root olarak başlatır. Eski kurulumda hemen düzeltmek için:
+
+```bash
+sed -i 's/^User=.*/User=root/; s/^Group=.*/Group=root/' /etc/systemd/system/bvspot-api.service /etc/systemd/system/bvspot-web.service
+systemctl daemon-reload
+systemctl reset-failed bvspot-api bvspot-web
+systemctl restart bvspot-api bvspot-web
+curl -fsS http://127.0.0.1:3001/health
+```
 
 `Browserslist` satırları uyarıdır. Kurulumu durdurmaz.
 

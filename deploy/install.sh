@@ -147,6 +147,12 @@ else
   fi
 fi
 
+# /root 700 olduğu için bvspot kullanıcısı /root/BVSPOT içine giremez.
+if ! su -s /bin/bash "$APP_USER" -c "test -x '$ROOT'"; then
+  echo "==> $APP_USER bu klasöre giremiyor. Servisler root olarak çalışacak."
+  APP_USER="root"
+fi
+
 install -d -m 755 /var/www/html
 install -d -o "$APP_USER" -g "$APP_USER" -m 750 "$ROOT/backend/logs" "$ROOT/backend/uploads/ssids"
 
