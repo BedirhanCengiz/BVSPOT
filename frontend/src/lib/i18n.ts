@@ -584,16 +584,23 @@ export const translations = {
 
 export function getTranslation(key: string, lang: Language = 'tr'): string {
   const keys = key.split('.');
-  let value: any = translations[lang];
-  
+  let value: unknown = translations[lang];
+
   for (const k of keys) {
-    value = value?.[k];
-    if (value === undefined) {
-      return translations.tr[key as keyof typeof translations.tr] || key;
+    if (value && typeof value === 'object' && k in value) {
+      value = (value as Record<string, unknown>)[k];
+    } else {
+      value = undefined;
+      break;
     }
   }
-  
-  return value || key;
+
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  const fallback = translations.tr[key as keyof typeof translations.tr];
+  return typeof fallback === 'string' ? fallback : key;
 }
 
 export function t(key: string, lang: Language = 'tr'): string {
