@@ -96,7 +96,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 <img 
                   src="/assets/bvspot_logo_metalic.png" 
                   alt="BVSPOT Logo" 
-                  className="h-8 sm:h-10 w-auto flex-shrink-0"
+                  className="h-12 sm:h-14 w-auto flex-shrink-0"
                 />
                 <div className="hidden sm:block min-w-0">
                   <p className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">{t('adminPanel', language)}</p>

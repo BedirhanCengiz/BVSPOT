@@ -74,7 +74,7 @@ export default function LoginForm({ idType, onSuccess, onBack }: LoginFormProps)
           <img 
             src="/assets/bvspot_logo_metalic.png" 
             alt="BVSPOT Logo" 
-            className="h-10 sm:h-12 md:h-14 w-auto"
+            className="h-16 sm:h-20 md:h-24 w-auto"
           />
         </div>
         <h1 className="text-base sm:text-lg md:text-xl lg:text-2xl font-extrabold gradient-text mb-1 sm:mb-2 animate-slide-down px-2">

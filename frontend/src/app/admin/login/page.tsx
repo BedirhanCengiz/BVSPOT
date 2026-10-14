@@ -52,7 +52,7 @@ export default function AdminLogin() {
         <img 
           src="/assets/bvspot_logo_metalic.png" 
           alt="BVSPOT Logo" 
-          className="h-8 sm:h-10 md:h-12 w-auto"
+          className="h-12 sm:h-14 md:h-16 w-auto"
         />
       </div>
 
