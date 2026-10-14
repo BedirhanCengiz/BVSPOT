@@ -87,7 +87,7 @@ export default function LoginForm({ idType, onSuccess, onBack }: LoginFormProps)
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-2.5 sm:space-y-3 md:space-y-4 animate-fade-in relative z-50" style={{ pointerEvents: 'auto' }}>
         {/* Telefon */}
-        <div className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
+        <div className="animate-slide-up relative z-[70]" style={{ animationDelay: '0.1s' }}>
           <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2 flex items-center gap-1">
             {t('phone', language)} <span className="text-red-500">*</span>
           </label>
@@ -142,7 +142,7 @@ export default function LoginForm({ idType, onSuccess, onBack }: LoginFormProps)
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-gradient-to-r from-primary-600 to-purple-600 text-white py-2.5 sm:py-3 rounded-lg font-bold text-xs sm:text-sm shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-95 focus:outline-none focus:ring-4 focus:ring-primary-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 relative overflow-hidden btn-glow group cursor-pointer z-50 min-h-[44px] sm:min-h-[48px]"
+          className="w-full bg-gradient-to-r from-primary-600 to-purple-600 text-white py-2.5 sm:py-3 rounded-lg font-bold text-xs sm:text-sm shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-95 focus:outline-none focus:ring-4 focus:ring-primary-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 relative overflow-hidden btn-glow group cursor-pointer min-h-[44px] sm:min-h-[48px]"
           style={{ pointerEvents: loading ? 'none' : 'auto' }}
         >
           <span className="relative z-10 flex items-center justify-center gap-2 sm:gap-2.5">
@@ -169,7 +169,7 @@ export default function LoginForm({ idType, onSuccess, onBack }: LoginFormProps)
         <button
           type="button"
           onClick={onBack}
-          className="w-full border-2 border-gray-300 text-gray-700 py-2.5 sm:py-3 rounded-lg font-semibold text-xs sm:text-sm hover:bg-white/80 hover:border-primary-300 hover:scale-[1.02] active:scale-95 transition-all duration-300 shadow-md hover:shadow-lg cursor-pointer z-50 min-h-[44px] sm:min-h-[48px]"
+          className="w-full border-2 border-gray-300 text-gray-700 py-2.5 sm:py-3 rounded-lg font-semibold text-xs sm:text-sm hover:bg-white/80 hover:border-primary-300 hover:scale-[1.02] active:scale-95 transition-all duration-300 shadow-md hover:shadow-lg cursor-pointer min-h-[44px] sm:min-h-[48px]"
           style={{ pointerEvents: 'auto' }}
         >
           &larr; {t('back', language)}

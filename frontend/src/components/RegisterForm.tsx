@@ -172,7 +172,7 @@ export default function RegisterForm({ idType: propIdType, onSuccess, onBack }: 
         </div>
 
         {/* Telefon */}
-        <div className="animate-slide-up" style={{ animationDelay: '0.2s' }}>
+        <div className="animate-slide-up relative z-[70]" style={{ animationDelay: '0.2s' }}>
           <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2 flex items-center gap-1">
             {t('phone', language)} <span className="text-red-500">*</span>
           </label>

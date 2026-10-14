@@ -124,7 +124,7 @@ export default function PhoneInput({
 
           {/* Dropdown */}
           {isDropdownOpen && (
-            <div className="absolute top-full left-0 mt-1.5 sm:mt-2 bg-white border-2 border-gray-200 rounded-lg shadow-xl z-50 max-h-64 sm:max-h-72 overflow-y-auto w-48 sm:w-56 md:w-64">
+            <div className="absolute top-full left-0 mt-1.5 sm:mt-2 bg-white border-2 border-gray-200 rounded-lg shadow-xl z-[80] max-h-64 sm:max-h-72 overflow-y-auto w-48 sm:w-56 md:w-64">
               <div className="p-1 sm:p-1.5">
                 {countries.map((country) => (
                   <button
