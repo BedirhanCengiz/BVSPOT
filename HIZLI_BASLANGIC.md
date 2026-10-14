@@ -1,6 +1,6 @@
 # 🚀 Hızlı Başlangıç Rehberi
 
-Bu rehber, BVSPOT sistemini en hızlı şekilde çalıştırmanızı sağlar.
+Bu rehber, Vintra sistemini en hızlı şekilde çalıştırmanızı sağlar.
 
 ## ⚡ 5 Dakikada Kurulum
 

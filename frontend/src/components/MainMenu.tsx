@@ -54,7 +54,7 @@ export default function MainMenu({ onSelect }: MainMenuProps) {
         <div className="inline-flex items-center justify-center mb-2 sm:mb-3">
           <img 
             src="/assets/bvspot_logo_metalic.png" 
-            alt="BVSPOT Logo" 
+            alt="Vintra Logo" 
             className="h-16 sm:h-20 md:h-24 lg:h-28 w-auto"
           />
         </div>

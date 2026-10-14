@@ -1,4 +1,4 @@
-# BVSPOT - Kurulum Rehberi ve Dokümantasyon
+# Vintra - Kurulum Rehberi ve Dokümantasyon
 
 ## 📋 İçindekiler
 
@@ -15,7 +15,7 @@
 
 ## 🎯 Genel Bakış
 
-BVSPOT, misafir Wi-Fi ağları için geliştirilmiş kapsamlı bir kayıt ve yönetim sistemidir. Sistem, kullanıcıların Wi-Fi ağına kayıt olmasını, SMS/OTP doğrulaması yapmasını ve admin paneli üzerinden yönetilmesini sağlar.
+Vintra, misafir Wi-Fi ağları için geliştirilmiş kapsamlı bir kayıt ve yönetim sistemidir. Sistem, kullanıcıların Wi-Fi ağına kayıt olmasını, SMS/OTP doğrulaması yapmasını ve admin paneli üzerinden yönetilmesini sağlar.
 
 ### Ana Özellikler
 

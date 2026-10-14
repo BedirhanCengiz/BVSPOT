@@ -95,7 +95,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <img 
                   src="/assets/bvspot_logo_metalic.png" 
-                  alt="BVSPOT Logo" 
+                  alt="Vintra Logo" 
                   className="h-12 sm:h-14 w-auto flex-shrink-0"
                 />
                 <div className="hidden sm:block min-w-0">

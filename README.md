@@ -1,4 +1,4 @@
-# BVSPOT – Misafir Wi-Fi / Guest Network Kayıt ve Yönetim Sistemi
+# Vintra – Misafir Wi-Fi / Guest Network Kayıt ve Yönetim Sistemi
 
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-blue.svg)](https://www.postgresql.org/)

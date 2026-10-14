@@ -1,6 +1,6 @@
-# 🏗️ BVSPOT Sistem Mimarisi
+# 🏗️ Vintra Sistem Mimarisi
 
-Bu doküman, BVSPOT sisteminin teknik mimarisini ve çalışma prensiplerini açıklar.
+Bu doküman, Vintra sisteminin teknik mimarisini ve çalışma prensiplerini açıklar.
 
 ## 📐 Genel Mimari
 

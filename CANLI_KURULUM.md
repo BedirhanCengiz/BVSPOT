@@ -1,4 +1,4 @@
-# BVSPOT kurulum
+# Vintra kurulum
 
 Bu rehber iki işi anlatır: uygulamayı Ubuntu sanal sunucuya kurmak ve FortiGate'i bu kayıt sayfasına bağlamak.
 
@@ -254,6 +254,6 @@ Sayfa açılmıyorsa birinci kural eksiktir veya sunucu IP'si yanlıştır. Sayf
 
 ### Log
 
-Giriş anında BVSPOT şunları yazar: kimlik, saat, MAC (`usermac`), misafir IP'si (`userip`), sunucunun gördüğü dış IP ve KVKK onayı. Kayıt paneldeki log ekranındadır.
+Giriş anında Vintra şunları yazar: kimlik, saat, MAC (`usermac`), misafir IP'si (`userip`), sunucunun gördüğü dış IP ve KVKK onayı. Kayıt paneldeki log ekranındadır.
 
-İnternet açıldıktan sonra gidilen siteler ve kullanılan veri BVSPOT'a kendiliğinden düşmez. Onlar FortiGate trafik logunda kalır.
+İnternet açıldıktan sonra gidilen siteler ve kullanılan veri Vintra'ya kendiliğinden düşmez. Onlar FortiGate trafik logunda kalır.

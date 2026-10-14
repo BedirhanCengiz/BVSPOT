@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# BVSPOT canlı kurulum — Ubuntu/Debian sanal sunucu
+# Vintra canlı kurulum — Ubuntu/Debian sanal sunucu
 # Kullanım: sudo bash deploy/install.sh --domain wifi.ornek.com --ssl --certbot-email admin@ornek.com
 set -euo pipefail
 
@@ -22,7 +22,7 @@ FIREWALL=0
 
 usage() {
   cat <<'EOF'
-BVSPOT canlı kurulum
+Vintra canlı kurulum
 
   sudo bash deploy/install.sh --domain wifi.ornek.com --ssl --certbot-email admin@ornek.com
 
@@ -321,7 +321,7 @@ ADMIN_PASSWORD=$(env_quote "$ADMIN_PASSWORD")
 SMS_PROVIDER=${SMS_PROVIDER}
 NETGSM_USERNAME=
 NETGSM_PASSWORD=
-NETGSM_MSGHEADER=BVSPOT
+NETGSM_MSGHEADER=VINTRA
 
 FORTI_ENABLED=${FORTI_ENABLED}
 FORTI_ALLOWED_HOSTS=$(env_quote "$FORTI_HOSTS")
@@ -335,7 +335,7 @@ EOF
 
   umask 077
   cat > "$NOTES_FILE" <<EOF
-BVSPOT kurulum notu
+Vintra kurulum notu
 Portal: ${PUBLIC_URL}
 Admin: ${PUBLIC_URL}/admin/login
 E-posta: ${ADMIN_EMAIL}
@@ -373,7 +373,7 @@ NPM_BIN="$(command -v npm)"
 
 cat > /etc/systemd/system/bvspot-api.service <<EOF
 [Unit]
-Description=BVSPOT API
+Description=Vintra API
 After=network-online.target postgresql.service redis-server.service
 Wants=network-online.target postgresql.service redis-server.service
 
@@ -394,7 +394,7 @@ EOF
 
 cat > /etc/systemd/system/bvspot-web.service <<EOF
 [Unit]
-Description=BVSPOT Web
+Description=Vintra Web
 After=network-online.target bvspot-api.service
 Wants=bvspot-api.service
 
@@ -456,7 +456,7 @@ if [[ "$FIREWALL" == "1" ]]; then
 fi
 
 echo
-echo "BVSPOT ayakta: ${PUBLIC_URL}"
+echo "Vintra ayakta: ${PUBLIC_URL}"
 echo "Admin panel: ${PUBLIC_URL}/admin/login"
 echo "Sağlık: ${PUBLIC_URL}/health"
 if [[ "$CREATED_NOTES" == "1" ]]; then

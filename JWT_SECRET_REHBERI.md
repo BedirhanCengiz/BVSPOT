@@ -1,6 +1,6 @@
 # 🔐 JWT Secret Key Rehberi
 
-Bu doküman, BVSPOT sisteminde kullanılan JWT secret key'lerin nasıl oluşturulması ve yapılandırılması gerektiğini açıklar.
+Bu doküman, Vintra sisteminde kullanılan JWT secret key'lerin nasıl oluşturulması ve yapılandırılması gerektiğini açıklar.
 
 ## 🔑 JWT Secret Key Nedir?
 

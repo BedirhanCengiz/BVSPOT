@@ -51,7 +51,7 @@ export default function AdminLogin() {
       <div className="absolute top-2 sm:top-4 md:top-6 left-2 sm:left-4 md:left-6 z-20">
         <img 
           src="/assets/bvspot_logo_metalic.png" 
-          alt="BVSPOT Logo" 
+          alt="Vintra Logo" 
           className="h-12 sm:h-14 md:h-16 w-auto"
         />
       </div>

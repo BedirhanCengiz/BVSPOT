@@ -7,7 +7,7 @@ import { ThemeProvider } from '@/contexts/ThemeContext'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'BVSPOT - Misafir Wi-Fi',
+  title: 'Vintra - Misafir Wi-Fi',
   description: 'Misafir Wi-Fi kayıt ve yönetim sistemi',
   icons: {
     icon: '/assets/BVSPOT.ico',

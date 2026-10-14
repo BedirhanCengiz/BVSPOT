@@ -73,7 +73,7 @@ export default function LoginForm({ idType, onSuccess, onBack }: LoginFormProps)
         <div className="flex justify-center mb-2 sm:mb-3">
           <img 
             src="/assets/bvspot_logo_metalic.png" 
-            alt="BVSPOT Logo" 
+            alt="Vintra Logo" 
             className="h-16 sm:h-20 md:h-24 w-auto"
           />
         </div>

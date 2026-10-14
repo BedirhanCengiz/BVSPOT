@@ -1,6 +1,6 @@
 /**
  * FortiGate harici captive portal dönüşü.
- * Kayıt/giriş BVSPOT'ta bittikten sonra tarayıcı, FortiGate'in
+ * Kayıt/giriş Vintra'da bittikten sonra tarayıcı, FortiGate'in
  * gönderdiği post adresine (fgtauth) magic + yerel kullanıcı ile POST eder.
  * https://community.fortinet.com — captive portal workflow
  */

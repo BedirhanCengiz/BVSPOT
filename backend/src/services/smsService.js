@@ -37,7 +37,7 @@ export async function sendSMS(phone, message) {
 async function sendViaNetGSM(phone, message) {
   const username = process.env.NETGSM_USERNAME;
   const password = process.env.NETGSM_PASSWORD;
-  const msgHeader = process.env.NETGSM_MSGHEADER || 'BVSPOT';
+  const msgHeader = process.env.NETGSM_MSGHEADER || 'VINTRA';
 
   if (!username || !password) {
     console.warn('NetGSM credentials not configured, using test mode');

@@ -112,7 +112,7 @@ export async function sendOTP(phone) {
     await redisClient.setEx(rateLimitKey, 60, '1');
 
     // SMS gönder
-    const smsResult = await sendSMS(phone, `BVSPOT doğrulama kodunuz: ${code}. Bu kod ${OTP_EXPIRY_MINUTES} dakika geçerlidir.`);
+    const smsResult = await sendSMS(phone, `Vintra doğrulama kodunuz: ${code}. Bu kod ${OTP_EXPIRY_MINUTES} dakika geçerlidir.`);
 
     if (!smsResult.success) {
       // SMS gönderilemezse bile OTP'yi kaydet (test için)
