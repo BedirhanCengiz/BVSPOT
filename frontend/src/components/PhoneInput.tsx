@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { UseFormRegisterReturn } from 'react-hook-form';
 import { ChevronDown } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -78,15 +79,31 @@ export default function PhoneInput({
   defaultValue,
 }: PhoneInputProps) {
   const { language } = useLanguage();
-  const [selectedCountry, setSelectedCountry] = useState<Country>(countries[0]); // Türkiye varsayılan
+  const [selectedCountry, setSelectedCountry] = useState<Country>(countries[0]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0, width: 240 });
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  const updateMenuPosition = () => {
+    const button = buttonRef.current;
+    if (!button) return;
+    const rect = button.getBoundingClientRect();
+    setMenuPosition({
+      top: rect.bottom + 6,
+      left: rect.left,
+      width: Math.max(rect.width, 240),
+    });
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsDropdownOpen(false);
+      const target = event.target as Node;
+      if (dropdownRef.current?.contains(target) || menuRef.current?.contains(target)) {
+        return;
       }
+      setIsDropdownOpen(false);
     };
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -94,6 +111,17 @@ export default function PhoneInput({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  useEffect(() => {
+    if (!isDropdownOpen) return;
+    updateMenuPosition();
+    window.addEventListener('resize', updateMenuPosition);
+    window.addEventListener('scroll', updateMenuPosition, true);
+    return () => {
+      window.removeEventListener('resize', updateMenuPosition);
+      window.removeEventListener('scroll', updateMenuPosition, true);
+    };
+  }, [isDropdownOpen]);
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     // Sadece rakamları al ve max 11 karakter
@@ -113,35 +141,40 @@ export default function PhoneInput({
         {/* Ülke Kodu Seçici */}
         <div className="relative" ref={dropdownRef}>
           <button
+            ref={buttonRef}
             type="button"
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 sm:py-2 border-2 border-gray-200 ${className?.includes('rounded-lg') ? 'rounded-lg' : 'rounded-lg'} focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white hover:border-primary-300 transition-all duration-300 text-[10px] sm:text-xs min-w-[65px] sm:min-w-[75px] active:scale-95 min-h-[44px] sm:min-h-[48px]`}
+            className="flex items-center gap-1.5 px-2.5 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white hover:border-primary-300 transition-all duration-300 text-xs min-w-[92px] active:scale-95 min-h-[44px] sm:min-h-[48px]"
           >
-            <span className="text-base sm:text-lg leading-none inline-block flex-shrink-0" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, Segoe UI Symbol, sans-serif', fontSize: '1rem', lineHeight: '1' }}>{selectedCountry.flag}</span>
-            <span className="text-gray-700 font-medium text-[10px] sm:text-xs hidden xs:inline">{selectedCountry.dialCode}</span>
-            <ChevronDown className={`w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-500 transition-transform flex-shrink-0 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+            <span className="font-semibold text-gray-800">{selectedCountry.code}</span>
+            <span className="font-medium text-gray-600">{selectedCountry.dialCode}</span>
+            <ChevronDown className={`w-3.5 h-3.5 text-gray-500 transition-transform flex-shrink-0 ${isDropdownOpen ? 'rotate-180' : ''}`} />
           </button>
 
-          {/* Dropdown */}
-          {isDropdownOpen && (
-            <div className="absolute top-full left-0 mt-1.5 sm:mt-2 bg-white border-2 border-gray-200 rounded-lg shadow-xl z-[80] max-h-64 sm:max-h-72 overflow-y-auto w-48 sm:w-56 md:w-64">
-              <div className="p-1 sm:p-1.5">
+          {isDropdownOpen && createPortal(
+            <div
+              ref={menuRef}
+              className="fixed bg-white border-2 border-gray-200 rounded-lg shadow-xl max-h-64 overflow-y-auto"
+              style={{ top: menuPosition.top, left: menuPosition.left, width: menuPosition.width, zIndex: 9999 }}
+            >
+              <div className="p-1">
                 {countries.map((country) => (
                   <button
                     key={country.code}
                     type="button"
                     onClick={() => handleCountrySelect(country)}
-                    className={`w-full flex items-center gap-1.5 sm:gap-2 px-2 sm:px-2.5 py-1.5 sm:py-2 rounded-md hover:bg-gray-50 active:bg-gray-100 transition-colors text-left min-h-[40px] ${
+                    className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-md hover:bg-gray-50 active:bg-gray-100 transition-colors text-left min-h-[40px] ${
                       selectedCountry.code === country.code ? 'bg-primary-50' : ''
                     }`}
                   >
-                    <span className="text-base sm:text-lg leading-none flex-shrink-0 inline-block" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, Segoe UI Symbol, sans-serif', fontSize: '1rem', lineHeight: '1' }}>{country.flag}</span>
-                    <span className="flex-1 text-[10px] sm:text-xs text-gray-700 truncate">{t(country.nameKey, language)}</span>
-                    <span className="text-[10px] sm:text-xs text-gray-500 font-medium flex-shrink-0">{country.dialCode}</span>
+                    <span className="w-8 font-semibold text-xs text-gray-800 flex-shrink-0">{country.code}</span>
+                    <span className="flex-1 text-xs text-gray-700 truncate">{t(country.nameKey, language)}</span>
+                    <span className="text-xs text-gray-500 font-medium flex-shrink-0">{country.dialCode}</span>
                   </button>
                 ))}
               </div>
-            </div>
+            </div>,
+            document.body
           )}
         </div>
 
